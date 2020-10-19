@@ -1,0 +1,59 @@
+{
+  "name": "ent-script",
+	"description": "A fast javascript Entity Component System",
+  "version": "0.1.0",
+  "author": {
+		"name": "Caio Oliveira",
+		"email": "caio.vsoliveira23@gmail.com"
+	},
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/ent-script.esm.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build",
+    "size": "size-limit",
+    "analyze": "size-limit --why"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "size-limit": [
+    {
+      "path": "dist/ent-script.cjs.production.min.js",
+      "limit": "10 KB"
+    },
+    {
+      "path": "dist/ent-script.esm.js",
+      "limit": "10 KB"
+    }
+  ],
+  "peerDependencies": {},
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^4.6.0",
+    "husky": "^4.3.0",
+    "size-limit": "^4.6.0",
+    "tsdx": "^0.14.1",
+    "tslib": "^2.0.3",
+    "typescript": "^4.0.3"
+  }
+}
