@@ -10,17 +10,19 @@ export default [
 				name: 'ent_script',
 				file: pkg.browser,
 				format: 'umd',
+				exports: 'named',
 				plugins: [
 					terser(),
 				]
 			}, {
 				file: pkg.main,
 				format: 'cjs',
-				exports: 'default',
+				exports: 'named',
 				sourcemap: true
 			}, {
 				file: pkg.module,
 				format: 'es',
+				exports: 'named',
 				sourcemap: true
 			}
 		],

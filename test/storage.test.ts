@@ -1,4 +1,6 @@
 import Storage, { ComponentConstructor, MAX_COMPONENTS } from '../src/Storage';
+import PropertyType from '../src/PropertyTypes';
+
 
 describe('Storage construction', () => {
 
@@ -8,7 +10,7 @@ describe('Storage construction', () => {
 
 	it('throw an error when exceed the max number of components', () => {
 		class Component {
-			static schema = { property: 4 };
+			static schema = { property: PropertyType.INT_32 };
 		}
 
 		const componentsList: ComponentConstructor[] = [];
@@ -21,17 +23,17 @@ describe('Storage construction', () => {
 
 	it('create a pool with the component', () => {
 		class Component {
-			static schema = { property: 4 };
+			static schema = { property: PropertyType.BYTE };
 		}
 
 		const storage = new Storage([Component]);
 
 		const expectedComponentInfo = {
 			name: 'Component',
-			size: 4,
+			size: 8,
 			properties: [{
 				name: 'property',
-				size: 4,
+				size: 8,
 				offset: 0
 			}]
 		};

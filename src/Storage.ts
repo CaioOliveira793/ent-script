@@ -1,5 +1,7 @@
+import PropertyType, { PropertyTypeToSize } from './PropertyTypes';
+
 export interface ComponentConstructor extends Function {
-	schema: { [propertyName: string]: number; }
+	schema: { [propertyName: string]: PropertyType; }
 }
 
 interface ComponentProperty {
@@ -69,7 +71,7 @@ class Storage {
 		const componentLayout: ComponentProperty[] = [];
 
 		for (const propertyName in component.schema) {
-			const propertySize = component.schema[propertyName];
+			const propertySize = PropertyTypeToSize[component.schema[propertyName]];
 			
 			componentLayout.push({
 				name: propertyName,
