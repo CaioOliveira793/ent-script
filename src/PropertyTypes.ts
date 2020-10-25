@@ -19,18 +19,18 @@ export const enum PropertyType {
 }
 
 export enum PropertyTypeToSize {
-	U_8  = 8,
-	U_16 = 16,
-	U_32 = 32,
-	U_64 = 64,
+	U_8  = 1,
+	U_16 = 2,
+	U_32 = 4,
+	U_64 = 8,
 
-	I_8  = 8,
-	I_16 = 16,
-	I_32 = 32,
-	I_64 = 64,
+	I_8  = 1,
+	I_16 = 2,
+	I_32 = 4,
+	I_64 = 8,
 
-	F_32 = 32,
-	F_64 = 64,
+	F_32 = 4,
+	F_64 = 8,
 }
 
 export default PropertyType;

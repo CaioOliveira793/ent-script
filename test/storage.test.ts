@@ -1,4 +1,5 @@
-import Storage, { ComponentConstructor, MAX_COMPONENTS } from '../src/Storage';
+import Storage, { ComponentConstructor, ComponentInfo, ComponentSchema, MAX_COMPONENTS,
+	PoolInfo, PoolSettings } from '../src/Storage';
 import PropertyType from '../src/PropertyTypes';
 
 
@@ -10,7 +11,7 @@ describe('Storage construction', () => {
 
 	it('throw an error when exceed the max number of components', () => {
 		class Component {
-			static schema = { property: PropertyType.INT_32 };
+			static schema: ComponentSchema = { property: PropertyType.INT_32 };
 		}
 
 		const componentsList: ComponentConstructor[] = [];
@@ -23,22 +24,43 @@ describe('Storage construction', () => {
 
 	it('create a pool with the component', () => {
 		class Component {
-			static schema = { property: PropertyType.BYTE };
+			static schema: ComponentSchema = { property: PropertyType.BYTE };
 		}
 
 		const storage = new Storage([Component]);
 
-		const expectedComponentInfo = {
+		const expectedComponentInfo: ComponentInfo = {
 			name: 'Component',
-			size: 8,
+			size: 1,
 			properties: [{
 				name: 'property',
-				size: 8,
+				size: 1,
 				offset: 0
 			}]
 		};
 
 		expect(storage.getComponentInfo(Component)).toStrictEqual(expectedComponentInfo);
+	});
+
+	it('create a pool with the specified settings', () => {
+		class Component {
+			static schema: ComponentSchema = { property: PropertyType.FLOAT_32 };
+			static poolSettings: PoolSettings = {
+				initialCount: 14,
+				increaseCount: 20
+			};
+		}
+
+		const storage = new Storage([Component]);
+
+		const expectedPoolInfo: PoolInfo = {
+			componentReference: 'Component',
+			allocatedSize: 14 * 4,
+			usedSize: 0,
+			increaseSize: 20 * 4,
+		};
+
+		expect(storage.getPoolInfo(Component)).toStrictEqual(expectedPoolInfo);
 	});
 
 });
