@@ -27,4 +27,11 @@ describe('Entity', () => {
 		expect(storage.destroy(3)).toBe(false);
 	});
 
+	it('verify if a entity exists', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+
+		expect(storage.isExistentEntity(entity)).toBe(true);
+	});
+
 });

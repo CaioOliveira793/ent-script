@@ -88,7 +88,8 @@ class Storage {
 	}
 
 	public destroy = (entity: number): boolean => {
-	if (!this.entities[entity]) return false;
+		if (!this.entities[entity])
+			return false;
 
 		const componentsInEntity = this.generatorIndexInMask(
 			(this.entities[entity] as EntityData).componentMask);
@@ -166,9 +167,8 @@ class Storage {
 		const lastBit = mask & 1;
 
 		for (let index = 0; index < 32; index++) {
-			if (lastBit === 1) {
+			if (lastBit === 1)
 				yield index;
-			}
 			mask >> 1;
 		}
 	}
