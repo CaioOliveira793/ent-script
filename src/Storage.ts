@@ -42,6 +42,12 @@ export interface PoolInfo {
 	increaseSize: number;
 }
 
+interface EntityData {
+	componentMask: number;
+	componentPoolOffset: number[];
+}
+
+
 export const MAX_COMPONENTS = 32;
 
 
@@ -67,9 +73,42 @@ class Storage {
 			index++;
 		}
 
-		// this.componentsMaskByEntity = [];
-		// this.entityIdIncrement = 0;
+		this.entities = [];
+		this.entityIdIncrement = 0;
 	}
+
+	// entity //////////////////////////////////////////////////
+
+	public create = (): number => {
+		this.entities[this.entityIdIncrement] = {
+			componentMask: 0,
+			componentPoolOffset: []
+		};
+		return this.entityIdIncrement++;
+	}
+
+	public destroy = (entity: number): boolean => {
+		if (!this.entities[entity])
+			return false;
+
+		const componentsInEntity = this.generatorIndexInMask(
+			(this.entities[entity] as EntityData).componentMask);
+
+		for (const componentIndex of componentsInEntity) {
+			const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
+			poolOffset;
+
+			// free buffer region (poolOffset, poolOffset + this.pools[componentIndex].componentSize)
+		}
+
+		this.entities[entity] = null;
+		return true;
+	}
+
+	public isExistentEntity = (entity: number): boolean => {
+		return !!this.entities[entity];
+	}
+
 
 	// component ///////////////////////////////////////////////
 
@@ -124,9 +163,19 @@ class Storage {
 		};
 	}
 
+	private* generatorIndexInMask(mask: number): Generator<number, void, unknown> {
+		const lastBit = mask & 1;
+
+		for (let index = 0; index < 32; index++) {
+			if (lastBit === 1)
+				yield index;
+			mask >> 1;
+		}
+	}
+
 
 	private readonly pools: Pool[];
-	// private readonly componentsMaskByEntity: number[];
+	private readonly entities: (EntityData | null)[];
 
 	private readonly componentTranslationTable: {
 		[key: string]: {
@@ -135,7 +184,7 @@ class Storage {
 		}
 	};
 
-	// private entityIdIncrement: number;
+	private entityIdIncrement: number;
 }
 
 export default Storage;
