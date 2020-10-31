@@ -1,5 +1,7 @@
-import Storage, { ComponentConstructor, ComponentInfo, ComponentSchema, MAX_COMPONENTS,
-	PoolInfo, PoolSettings } from '../src/Storage';
+import Storage, {
+	ComponentConstructor, ComponentInfo, ComponentSchema, MAX_COMPONENTS,
+	PoolInfo, PoolSettings
+} from '../src/Storage';
 import PropertyType from '../src/PropertyTypes';
 
 
@@ -14,7 +16,7 @@ describe('Storage construction', () => {
 			static schema: ComponentSchema = { property: PropertyType.INT_32 };
 		}
 
-		const componentsList: ComponentConstructor[] = [];
+		const componentsList: ComponentConstructor<Component>[] = [];
 		for (let i = 0; i < MAX_COMPONENTS + 1; i++) {
 			componentsList.push(Component);
 		}
