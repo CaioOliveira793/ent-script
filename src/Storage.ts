@@ -48,6 +48,11 @@ interface EntityData {
 	componentPoolOffset: number[];
 }
 
+export const LITTLE_ENDIAN = ((): boolean => {
+	const buffer = new ArrayBuffer(2);
+	new DataView(buffer).setInt16(0, 256, true /* littleEndian */);
+	return new Int16Array(buffer)[0] === 256;
+})();
 
 export const MAX_COMPONENTS = 32;
 
@@ -139,7 +144,7 @@ class Storage {
 			}
 		}
 
-		const poolView = new DataView(this.pools[componentIndex].buffer);
+		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
 
 		// create a component reference to the poll
 		const componentRef: { [key: string]: number } = {};
@@ -149,46 +154,46 @@ class Storage {
 			// TODO: add type in ComponentProperty interface
 			switch (layout.size) {
 				case 1:
-					poolView.setUint8(layout.offset + poolOffset, componentData[layout.name] as number);
+					poolView.setUint8(layout.offset, componentData[layout.name] as number);
 
 					Object.defineProperty(componentRef, layout.name, {
 						configurable: false,
 						enumerable: true,
-						get: (): number => poolView.getUint8(layout.offset + poolOffset),
-						set: (value: number): void => poolView.setUint8(layout.offset + poolOffset, value)
+						get: (): number => poolView.getUint8(layout.offset),
+						set: (value: number): void => poolView.setUint8(layout.offset, value)
 					});
 					break;
 
 				case 2:
-					poolView.setUint16(layout.offset + poolOffset, componentData[layout.name] as number);
+					poolView.setUint16(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
 
 					Object.defineProperty(componentRef, layout.name, {
 						configurable: false,
 						enumerable: true,
-						get: (): number => poolView.getUint16(layout.offset + poolOffset, true),
-						set: (value: number): void => poolView.setUint16(layout.offset + poolOffset, value, true),
+						get: (): number => poolView.getUint16(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setUint16(layout.offset, value, LITTLE_ENDIAN),
 					});
 					break;
 
 				case 4:
-					poolView.setUint32(layout.offset + poolOffset, componentData[layout.name] as number);
+					poolView.setUint32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
 
 					Object.defineProperty(componentRef, layout.name, {
 						configurable: false,
 						enumerable: true,
-						get: (): number => poolView.getUint32(layout.offset + poolOffset, true),
-						set: (value: number): void => poolView.setUint32(layout.offset + poolOffset, value, true),
+						get: (): number => poolView.getUint32(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setUint32(layout.offset, value, LITTLE_ENDIAN),
 					});
 					break;
 
 				case 8:
-					poolView.setBigUint64(layout.offset + poolOffset, componentData[layout.name] as bigint);
+					poolView.setBigUint64(layout.offset, componentData[layout.name] as bigint, LITTLE_ENDIAN);
 
 					Object.defineProperty(componentRef, layout.name, {
 						configurable: false,
 						enumerable: true,
-						get: (): bigint => poolView.getBigUint64(layout.offset + poolOffset, true),
-						set: (value: bigint): void => poolView.setBigUint64(layout.offset + poolOffset, value, true),
+						get: (): bigint => poolView.getBigUint64(layout.offset, LITTLE_ENDIAN),
+						set: (value: bigint): void => poolView.setBigUint64(layout.offset, value, LITTLE_ENDIAN),
 					});
 					break;
 			}

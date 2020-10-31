@@ -3,15 +3,17 @@ import Storage, { ComponentSchema, PoolSettings } from '../src/Storage';
 
 const POOL_INCREASE_COUNT = 5;
 
-interface ComponentData {
-	property: number;
-}
+class Component {
+	public prop1: number = 1;
+	public prop_2: number = 3.1415;
+	public Prop3: number = 5000;
 
-class Component implements ComponentData {
-	public property: number = 2;
-
-	public static schema: ComponentSchema = { property: PropertyType.BYTE };
 	public static poolSettings: PoolSettings = { initialCount: 0, increaseCount: POOL_INCREASE_COUNT };
+	public static schema: ComponentSchema = {
+		prop1: PropertyType.BYTE,
+		prop_2: PropertyType.FLOAT,
+		Prop3: PropertyType.INT_32,
+	};
 }
 
 describe('Component', () => {
@@ -20,10 +22,8 @@ describe('Component', () => {
 		const storage = new Storage([Component]);
 		const entity = storage.create();
 
-		const component = storage.insert<Component>(entity, Component);
-		expect(component).toStrictEqual({
-			property: 2
-		});
+		storage.insert<Component>(entity, Component);
+		expect(storage.getPoolInfo(Component).usedSize).toBe(storage.getComponentInfo(Component).size);
 	});
 
 	it('throw an error when insert a component in a non created entity', () => {
