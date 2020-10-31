@@ -114,7 +114,8 @@ class Storage {
 	// component ///////////////////////////////////////////////
 
 	public insert = <T>(entity: number, component: ComponentConstructor<T>, ...args: unknown[]): T => {
-		if (!this.entities[entity]) throw new Error('can not insert a component in a non crated entity');
+		if (!this.entities[entity])
+			throw new Error('can not insert a component in a non crated entity');
 
 		const componentData = new component(...args) as unknown as { [key: string]: number | bigint };
 		const componentIndex = this.componentTranslationTable[component.name].index;
@@ -127,45 +128,80 @@ class Storage {
 			// increase buffer size:
 			if (this.pools[componentIndex].buffer.byteLength === this.pools[componentIndex].usedSize) {
 				const newBuffer = new ArrayBuffer(this.pools[componentIndex].usedSize + this.pools[componentIndex].increaseSize);
-				const uInt32NewBuffer = new Uint32Array(newBuffer);
-				const uInt32OldBuffer = new Uint32Array(this.pools[componentIndex].buffer);
+				const uInt32NewBuffer = new Uint8Array(newBuffer);
+				const uInt32OldBuffer = new Uint8Array(this.pools[componentIndex].buffer);
 
 				for (let i = 0; i < uInt32OldBuffer.length; i++) {
 					uInt32NewBuffer[i] = uInt32OldBuffer[i];
 				}
+
+				this.pools[componentIndex].buffer = newBuffer;
 			}
 		}
 
 		const poolView = new DataView(this.pools[componentIndex].buffer);
 
+		// create a component reference to the poll
+		const componentRef: { [key: string]: number } = {};
+
 		// for every property in the component:
 		for (const layout of this.pools[componentIndex].componentLayout) {
 			// TODO: add type in ComponentProperty interface
 			switch (layout.size) {
-				case 8:
+				case 1:
 					poolView.setUint8(layout.offset + poolOffset, componentData[layout.name] as number);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getUint8(layout.offset + poolOffset),
+						set: (value: number): void => poolView.setUint8(layout.offset + poolOffset, value)
+					});
 					break;
-				case 16:
+
+				case 2:
 					poolView.setUint16(layout.offset + poolOffset, componentData[layout.name] as number);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getUint16(layout.offset + poolOffset, true),
+						set: (value: number): void => poolView.setUint16(layout.offset + poolOffset, value, true),
+					});
 					break;
-				case 32:
+
+				case 4:
 					poolView.setUint32(layout.offset + poolOffset, componentData[layout.name] as number);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getUint32(layout.offset + poolOffset, true),
+						set: (value: number): void => poolView.setUint32(layout.offset + poolOffset, value, true),
+					});
 					break;
-				case 64:
+
+				case 8:
 					poolView.setBigUint64(layout.offset + poolOffset, componentData[layout.name] as bigint);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): bigint => poolView.getBigUint64(layout.offset + poolOffset, true),
+						set: (value: bigint): void => poolView.setBigUint64(layout.offset + poolOffset, value, true),
+					});
 					break;
 			}
 		}
 
-		// updating the entity:
-		(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
-		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = this.pools[componentIndex].usedSize;
-
 		// updating the pool:
 		this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
 
-		// TODO: return a component reference to the poll
-		return componentData as unknown as T;
+		// updating the entity:
+		(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
+		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = this.pools[componentIndex].componentSize + poolOffset;
+
+		return componentRef as unknown as T;
 	}
 
 
