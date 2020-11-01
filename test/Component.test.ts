@@ -1,14 +1,14 @@
 import PropertyType from '../src/PropertyTypes';
 import Storage, { ComponentSchema, PoolSettings } from '../src/Storage';
 
-const POOL_INCREASE_COUNT = 5;
+const POOL_INCREASE_COUNT = 2;
 
 class Component {
 	public prop1: number = 1;
 	public prop_2: number = 3.1415;
 	public Prop3: number = 5000;
 
-	public static poolSettings: PoolSettings = { initialCount: 0, increaseCount: POOL_INCREASE_COUNT };
+	public static poolSettings: PoolSettings = { initialCount: 2, increaseCount: POOL_INCREASE_COUNT };
 	public static schema: ComponentSchema = {
 		prop1: PropertyType.BYTE,
 		prop_2: PropertyType.DOUBLE,
@@ -50,6 +50,18 @@ describe('Component', () => {
 			prop_2: 3.1415,
 			Prop3: 5000
 		});
+	});
+
+	it('increase buffer size when insert new components', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+
+		for (let i = 0; i < POOL_INCREASE_COUNT + 1; i++) {
+			storage.insert<Component>(entity, Component);
+		}
+
+		expect(storage.getPoolInfo(Component).usedSize)
+			.toBeGreaterThanOrEqual(storage.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
 	});
 
 });
