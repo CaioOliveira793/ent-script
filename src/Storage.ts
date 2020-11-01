@@ -126,23 +126,15 @@ class Storage {
 		const componentData = new component(...args) as unknown as { [key: string]: number | bigint };
 		const componentIndex = this.componentTranslationTable[component.name].index;
 
-		let poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
+		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex] ?? this.pools[componentIndex].usedSize;
 
-		if (!(this.entities[entity] as EntityData).componentPoolOffset[componentIndex]) {
-			poolOffset = this.pools[componentIndex].usedSize;
+		// increase buffer size:
+		if (this.pools[componentIndex].buffer.byteLength === this.pools[componentIndex].usedSize) {
+			const newLargerBuffer = new ArrayBuffer(this.pools[componentIndex].usedSize + this.pools[componentIndex].increaseSize);
+			const oldBufferView = new Uint8Array(this.pools[componentIndex].buffer);
+			(new Uint8Array(newLargerBuffer)).set(oldBufferView);
 
-			// increase buffer size:
-			if (this.pools[componentIndex].buffer.byteLength === this.pools[componentIndex].usedSize) {
-				const newBuffer = new ArrayBuffer(this.pools[componentIndex].usedSize + this.pools[componentIndex].increaseSize);
-				const uInt32NewBuffer = new Uint8Array(newBuffer);
-				const uInt32OldBuffer = new Uint8Array(this.pools[componentIndex].buffer);
-
-				for (let i = 0; i < uInt32OldBuffer.length; i++) {
-					uInt32NewBuffer[i] = uInt32OldBuffer[i];
-				}
-
-				this.pools[componentIndex].buffer = newBuffer;
-			}
+			this.pools[componentIndex].buffer = newLargerBuffer;
 		}
 
 		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
