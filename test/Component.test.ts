@@ -11,7 +11,7 @@ class Component {
 	public static poolSettings: PoolSettings = { initialCount: 0, increaseCount: POOL_INCREASE_COUNT };
 	public static schema: ComponentSchema = {
 		prop1: PropertyType.BYTE,
-		prop_2: PropertyType.FLOAT,
+		prop_2: PropertyType.DOUBLE,
 		Prop3: PropertyType.INT_32,
 	};
 }
@@ -38,6 +38,18 @@ describe('Component', () => {
 		storage.destroy(entity);
 
 		expect(() => storage.insert<Component>(entity, Component)).toThrowError('can not insert a component in a non crated entity');
+	});
+
+	it('maps the properties of the inserted component', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+
+		const componentReference = storage.insert<Component>(entity, Component);
+		expect(componentReference).toStrictEqual({
+			prop1: 1,
+			prop_2: 3.1415,
+			Prop3: 5000
+		});
 	});
 
 });

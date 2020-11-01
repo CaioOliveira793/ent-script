@@ -18,6 +18,7 @@ export interface ComponentConstructor<T> extends Function {
 
 interface ComponentProperty {
 	readonly name: string;
+	readonly type: PropertyType;
 	readonly size: number;
 	readonly offset: number;
 }
@@ -151,9 +152,8 @@ class Storage {
 
 		// for every property in the component:
 		for (const layout of this.pools[componentIndex].componentLayout) {
-			// TODO: add type in ComponentProperty interface
-			switch (layout.size) {
-				case 1:
+			switch (layout.type) {
+				case PropertyType.U_INT_8:
 					poolView.setUint8(layout.offset, componentData[layout.name] as number);
 
 					Object.defineProperty(componentRef, layout.name, {
@@ -164,7 +164,7 @@ class Storage {
 					});
 					break;
 
-				case 2:
+				case PropertyType.U_INT_16:
 					poolView.setUint16(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
 
 					Object.defineProperty(componentRef, layout.name, {
@@ -175,7 +175,7 @@ class Storage {
 					});
 					break;
 
-				case 4:
+				case PropertyType.U_INT_32:
 					poolView.setUint32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
 
 					Object.defineProperty(componentRef, layout.name, {
@@ -186,7 +186,7 @@ class Storage {
 					});
 					break;
 
-				case 8:
+				case PropertyType.U_INT_64:
 					poolView.setBigUint64(layout.offset, componentData[layout.name] as bigint, LITTLE_ENDIAN);
 
 					Object.defineProperty(componentRef, layout.name, {
@@ -194,6 +194,72 @@ class Storage {
 						enumerable: true,
 						get: (): bigint => poolView.getBigUint64(layout.offset, LITTLE_ENDIAN),
 						set: (value: bigint): void => poolView.setBigUint64(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.INT_8:
+					poolView.setInt8(layout.offset, componentData[layout.name] as number);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getInt8(layout.offset),
+						set: (value: number): void => poolView.setInt8(layout.offset, value),
+					});
+					break;
+
+				case PropertyType.INT_16:
+					poolView.setInt16(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getInt16(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setInt16(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.INT_32:
+					poolView.setInt32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getInt32(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setInt32(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.INT_64:
+					poolView.setBigInt64(layout.offset, componentData[layout.name] as bigint, LITTLE_ENDIAN);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): bigint => poolView.getBigInt64(layout.offset, LITTLE_ENDIAN),
+						set: (value: bigint): void => poolView.setBigInt64(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.FLOAT_32:
+					poolView.setFloat32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getFloat32(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setFloat32(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.FLOAT_64:
+					poolView.setFloat64(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
+
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getFloat64(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setFloat64(layout.offset, value, LITTLE_ENDIAN),
 					});
 					break;
 			}
@@ -244,6 +310,7 @@ class Storage {
 			const propertySize = PropertyTypeToSize[component.schema[propertyName]];
 			componentLayout.push({
 				name: propertyName,
+				type: component.schema[propertyName],
 				size: propertySize,
 				offset: componentSize
 			});
