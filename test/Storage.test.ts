@@ -36,6 +36,7 @@ describe('Storage construction', () => {
 			size: 1,
 			properties: [{
 				name: 'property',
+				type: PropertyType.BYTE,
 				size: 1,
 				offset: 0
 			}]
