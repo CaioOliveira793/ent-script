@@ -123,7 +123,7 @@ class Storage {
 		if (!this.entities[entity])
 			throw new Error('can not insert a component in a non crated entity');
 
-		const componentData = new component(...args) as unknown as { [key: string]: number | bigint };
+		const componentData = new component(...args);
 		const componentIndex = this.componentTranslationTable[component.name].index;
 
 		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex] ?? this.pools[componentIndex].usedSize;
@@ -137,126 +137,6 @@ class Storage {
 			this.pools[componentIndex].buffer = newLargerBuffer;
 		}
 
-		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
-
-		// create a component reference to the poll
-		const componentRef: { [key: string]: number } = {};
-
-		// for every property in the component:
-		for (const layout of this.pools[componentIndex].componentLayout) {
-			switch (layout.type) {
-				case PropertyType.U_INT_8:
-					poolView.setUint8(layout.offset, componentData[layout.name] as number);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getUint8(layout.offset),
-						set: (value: number): void => poolView.setUint8(layout.offset, value)
-					});
-					break;
-
-				case PropertyType.U_INT_16:
-					poolView.setUint16(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getUint16(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => poolView.setUint16(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.U_INT_32:
-					poolView.setUint32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getUint32(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => poolView.setUint32(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.U_INT_64:
-					poolView.setBigUint64(layout.offset, componentData[layout.name] as bigint, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): bigint => poolView.getBigUint64(layout.offset, LITTLE_ENDIAN),
-						set: (value: bigint): void => poolView.setBigUint64(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.INT_8:
-					poolView.setInt8(layout.offset, componentData[layout.name] as number);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getInt8(layout.offset),
-						set: (value: number): void => poolView.setInt8(layout.offset, value),
-					});
-					break;
-
-				case PropertyType.INT_16:
-					poolView.setInt16(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getInt16(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => poolView.setInt16(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.INT_32:
-					poolView.setInt32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getInt32(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => poolView.setInt32(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.INT_64:
-					poolView.setBigInt64(layout.offset, componentData[layout.name] as bigint, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): bigint => poolView.getBigInt64(layout.offset, LITTLE_ENDIAN),
-						set: (value: bigint): void => poolView.setBigInt64(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.FLOAT_32:
-					poolView.setFloat32(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getFloat32(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => poolView.setFloat32(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.FLOAT_64:
-					poolView.setFloat64(layout.offset, componentData[layout.name] as number, LITTLE_ENDIAN);
-
-					Object.defineProperty(componentRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => poolView.getFloat64(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => poolView.setFloat64(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-			}
-		}
-
 		// updating the pool:
 		this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
 
@@ -264,7 +144,11 @@ class Storage {
 		(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
 		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = this.pools[componentIndex].componentSize + poolOffset;
 
-		return componentRef as unknown as T;
+		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
+		const componentRef = this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
+		for (const prop in componentRef) componentRef[prop] = componentData[prop];
+
+		return componentRef;
 	}
 
 
@@ -316,6 +200,109 @@ class Storage {
 			usedSize: 0,
 			increaseSize: (component.poolSettings?.increaseCount ?? 10) * componentSize
 		};
+	}
+
+	private createComponentRef = <T>(
+		poolView: DataView,
+		poolLayout: ComponentProperty[]
+	): T => {
+		const componentRef = {} as T;
+
+		for (const layout of poolLayout) {
+			switch (layout.type) {
+				case PropertyType.U_INT_8:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getUint8(layout.offset),
+						set: (value: number): void => poolView.setUint8(layout.offset, value)
+					});
+					break;
+
+				case PropertyType.U_INT_16:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getUint16(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setUint16(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.U_INT_32:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getUint32(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setUint32(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.U_INT_64:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): bigint => poolView.getBigUint64(layout.offset, LITTLE_ENDIAN),
+						set: (value: bigint): void => poolView.setBigUint64(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.INT_8:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getInt8(layout.offset),
+						set: (value: number): void => poolView.setInt8(layout.offset, value),
+					});
+					break;
+
+				case PropertyType.INT_16:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getInt16(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setInt16(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.INT_32:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getInt32(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setInt32(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.INT_64:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): bigint => poolView.getBigInt64(layout.offset, LITTLE_ENDIAN),
+						set: (value: bigint): void => poolView.setBigInt64(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.FLOAT_32:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getFloat32(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setFloat32(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+
+				case PropertyType.FLOAT_64:
+					Object.defineProperty(componentRef, layout.name, {
+						configurable: false,
+						enumerable: true,
+						get: (): number => poolView.getFloat64(layout.offset, LITTLE_ENDIAN),
+						set: (value: number): void => poolView.setFloat64(layout.offset, value, LITTLE_ENDIAN),
+					});
+					break;
+			}
+		}
+
+		return componentRef;
 	}
 
 	private * generatorIndexInMask(mask: number): Generator<number, void, unknown> {

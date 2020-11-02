@@ -29,7 +29,8 @@ describe('Component', () => {
 	it('throw an error when insert a component in a non created entity', () => {
 		const storage = new Storage([Component]);
 
-		expect(() => storage.insert<Component>(3, Component)).toThrowError('can not insert a component in a non crated entity');
+		expect(() => storage.insert<Component>(3, Component))
+			.toThrowError('can not insert a component in a non crated entity');
 	});
 
 	it('throw an error when insert a component in a deleted entity', () => {
@@ -37,7 +38,8 @@ describe('Component', () => {
 		const entity = storage.create();
 		storage.destroy(entity);
 
-		expect(() => storage.insert<Component>(entity, Component)).toThrowError('can not insert a component in a non crated entity');
+		expect(() => storage.insert<Component>(entity, Component))
+			.toThrowError('can not insert a component in a non crated entity');
 	});
 
 	it('maps the properties of the inserted component', () => {
