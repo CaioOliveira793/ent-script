@@ -26,6 +26,38 @@ describe('Component', () => {
 		expect(storage.getPoolInfo(Component).usedSize).toBe(storage.getComponentInfo(Component).size);
 	});
 
+	it('return the component reference when insert a new component', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+		const componentRef = storage.insert<Component>(entity, Component);
+
+		componentRef.Prop3 = -4523;
+		componentRef.prop_2 = 5.23234232;
+		componentRef.prop1 = 120;
+
+		expect(storage.retrieve<Component>(entity, Component)).toStrictEqual({
+			prop1: 120,
+			prop_2: 5.23234232,
+			Prop3: -4523
+		});
+	});
+
+	it('reset component values when insert in a already created component', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+		const componentRef = storage.insert<Component>(entity, Component);
+
+		componentRef.Prop3 = -4523;
+		componentRef.prop_2 = 5.23234232;
+		componentRef.prop1 = 120;
+
+		expect(storage.insert<Component>(entity, Component)).toStrictEqual({
+			prop1: 1,
+			prop_2: 3.1415,
+			Prop3: 5000
+		});
+	});
+
 	it('throw an error when insert a component in a non created entity', () => {
 		const storage = new Storage([Component]);
 
