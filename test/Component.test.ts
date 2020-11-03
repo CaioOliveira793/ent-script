@@ -66,4 +66,32 @@ describe('Component', () => {
 			.toBeGreaterThanOrEqual(storage.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
 	});
 
+
+	it('throw an error when retrieve a component of a non crated entity', () => {
+		const storage = new Storage([Component]);
+
+		expect(() => storage.retrieve<Component>(3, Component))
+			.toThrowError('can not retrieve a component of a non crated entity');
+	});
+
+	it('throw an error when retrieve a non inserted component in entity', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+
+		expect(() => storage.retrieve<Component>(entity, Component))
+			.toThrowError(`entity does not have component ${Component.name} to retrieve`);
+	});
+
+	it('retrieve the component reference', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+		const compRef = storage.insert<Component>(entity, Component);
+
+		compRef.Prop3 = -3000;
+		compRef.prop_2 = 1.618;
+		compRef.prop1 = 250;
+
+		expect(storage.retrieve<Component>(entity, Component)).toStrictEqual(compRef);
+	});
+
 });
