@@ -129,7 +129,7 @@ class Storage {
 		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex] ?? this.pools[componentIndex].usedSize;
 
 		// increase buffer size:
-		if (this.pools[componentIndex].buffer.byteLength === this.pools[componentIndex].usedSize) {
+		if (this.pools[componentIndex].buffer.byteLength === poolOffset) {
 			const newLargerBuffer = new ArrayBuffer(this.pools[componentIndex].usedSize + this.pools[componentIndex].increaseSize);
 			const oldBufferView = new Uint8Array(this.pools[componentIndex].buffer);
 			(new Uint8Array(newLargerBuffer)).set(oldBufferView);
