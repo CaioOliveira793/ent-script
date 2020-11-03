@@ -137,18 +137,34 @@ class Storage {
 			this.pools[componentIndex].buffer = newLargerBuffer;
 		}
 
-		// updating the pool:
+		// update the pool used size:
 		this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
 
-		// updating the entity:
-		(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
-		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = this.pools[componentIndex].componentSize + poolOffset;
+		// update the entity if it's a new component:
+		if ((this.entities[entity] as EntityData).componentPoolOffset[componentIndex] === undefined) {
+			(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
+			(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = poolOffset;
+		}
 
 		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
 		const componentRef = this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
 		for (const prop in componentRef) componentRef[prop] = componentData[prop];
 
 		return componentRef;
+	}
+
+	public retrieve = <T>(entity: number, component: ComponentConstructor<T>): T => {
+		if (!this.entities[entity])
+			throw new Error('can not retrieve a component of a non crated entity');
+
+		const componentIndex = this.componentTranslationTable[component.name].index;
+		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
+
+		if (poolOffset === undefined)
+			throw new Error(`entity does not have component ${component.name} to retrieve`);
+
+		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
+		return this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
 	}
 
 
