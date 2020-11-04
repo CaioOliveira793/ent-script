@@ -24,9 +24,9 @@ interface ComponentProperty {
 }
 
 export interface ComponentInfo {
-	name: string;
-	size: number;
-	properties: ComponentProperty[];
+	readonly name: string;
+	readonly size: number;
+	readonly properties: ComponentProperty[];
 }
 
 interface Pool {
@@ -35,13 +35,15 @@ interface Pool {
 	readonly componentLayout: ComponentProperty[];
 	usedSize: number;
 	increaseSize: number;
+	freeSections: number[];
 }
 
 export interface PoolInfo {
-	componentReference: string;
-	allocatedSize: number;
-	usedSize: number;
-	increaseSize: number;
+	readonly componentReference: string;
+	readonly allocatedSize: number;
+	readonly usedSize: number;
+	readonly increaseSize: number;
+	readonly freeSections: number[];
 }
 
 interface EntityData {
@@ -121,7 +123,7 @@ class Storage {
 
 	public insert = <T>(entity: number, component: ComponentConstructor<T>, ...args: unknown[]): T => {
 		if (!this.entities[entity])
-			throw new Error('can not insert a component in a non crated entity');
+			throw new Error('can not insert a component in a non-crated entity');
 
 		const componentData = new component(...args);
 		const componentIndex = this.componentTranslationTable[component.name].index;
@@ -155,7 +157,7 @@ class Storage {
 
 	public retrieve = <T>(entity: number, component: ComponentConstructor<T>): T => {
 		if (!this.entities[entity])
-			throw new Error('can not retrieve a component of a non crated entity');
+			throw new Error('can not retrieve a component of a non-crated entity');
 
 		const componentIndex = this.componentTranslationTable[component.name].index;
 		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
@@ -165,6 +167,22 @@ class Storage {
 
 		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
 		return this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
+	}
+
+	public remove = <T>(entity: number, component: ComponentConstructor<T>): void => {
+		if (!this.entities[entity])
+			throw new Error('can not delete a component of a non-crated entity');
+
+		const componentIndex = this.componentTranslationTable[component.name].index;
+		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
+
+		// if there is no component in the entity:
+		if (poolOffset === undefined) return;
+
+		(this.entities[entity] as EntityData).componentMask ^= this.componentTranslationTable[component.name].mask;
+		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = undefined as unknown as number;
+
+		this.pools[componentIndex].freeSections.push(poolOffset);
 	}
 
 
@@ -187,7 +205,8 @@ class Storage {
 			componentReference: component.name,
 			allocatedSize: this.pools[poolIndex].buffer.byteLength,
 			usedSize: this.pools[poolIndex].usedSize,
-			increaseSize: this.pools[poolIndex].increaseSize
+			increaseSize: this.pools[poolIndex].increaseSize,
+			freeSections: this.pools[poolIndex].freeSections
 		};
 	}
 
@@ -214,7 +233,8 @@ class Storage {
 			componentSize,
 			componentLayout,
 			usedSize: 0,
-			increaseSize: (component.poolSettings?.increaseCount ?? 10) * componentSize
+			increaseSize: (component.poolSettings?.increaseCount ?? 10) * componentSize,
+			freeSections: []
 		};
 	}
 
