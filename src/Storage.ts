@@ -128,7 +128,14 @@ class Storage {
 		const componentData = new component(...args);
 		const componentIndex = this.componentTranslationTable[component.name].index;
 
-		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex] ?? this.pools[componentIndex].usedSize;
+		let poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
+		let shouldIncreaseUsedSize = true;
+
+		if (poolOffset === undefined && this.pools[componentIndex].freeSections.length >= 1) {
+			poolOffset = this.pools[componentIndex].freeSections.pop() as number;
+			shouldIncreaseUsedSize = false;
+		} else
+			poolOffset = this.pools[componentIndex].usedSize;
 
 		// increase buffer size:
 		if (this.pools[componentIndex].buffer.byteLength === poolOffset) {
@@ -146,7 +153,8 @@ class Storage {
 			(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = poolOffset;
 
 			// update the pool used size:
-			this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
+			if (shouldIncreaseUsedSize)
+				this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
 		}
 
 		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);

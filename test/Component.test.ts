@@ -99,6 +99,26 @@ describe('Component insertion', () => {
 			.toBeGreaterThanOrEqual(storage.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
 	});
 
+	it('use free pool section of the previously excluded component', () => {
+		const storage = new Storage([Component]);
+
+		const entity1 = storage.create();
+		const entity2 = storage.create();
+		const entity3 = storage.create();
+		const entity4 = storage.create();
+
+		storage.insert<Component>(entity1, Component);
+		storage.insert<Component>(entity2, Component);
+		storage.insert<Component>(entity3, Component);
+
+		storage.remove<Component>(entity2, Component);
+		expect(storage.getPoolInfo(Component).freeSections.length).toBe(1);
+
+		storage.insert<Component>(entity4, Component);
+		expect(storage.getPoolInfo(Component).freeSections.length).toBe(0);
+		expect(storage.getPoolInfo(Component).usedSize).toBe(storage.getComponentInfo(Component).size * 3);
+	});
+
 });
 
 describe('Component return', () => {
