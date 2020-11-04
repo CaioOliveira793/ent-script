@@ -139,13 +139,14 @@ class Storage {
 			this.pools[componentIndex].buffer = newLargerBuffer;
 		}
 
-		// update the pool used size:
-		this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
-
-		// update the entity if it's a new component:
+		// if it's a new component:
 		if ((this.entities[entity] as EntityData).componentPoolOffset[componentIndex] === undefined) {
+			// update the entity:
 			(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
 			(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = poolOffset;
+
+			// update the pool used size:
+			this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
 		}
 
 		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);

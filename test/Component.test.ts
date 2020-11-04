@@ -89,9 +89,9 @@ describe('Component insertion', () => {
 
 	it('increase buffer size when insert new components', () => {
 		const storage = new Storage([Component]);
-		const entity = storage.create();
 
 		for (let i = 0; i < POOL_INCREASE_COUNT + 1; i++) {
+			const entity = storage.create();
 			storage.insert<Component>(entity, Component);
 		}
 
