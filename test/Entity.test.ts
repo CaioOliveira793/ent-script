@@ -8,7 +8,7 @@ class Component {
 
 describe('Entity', () => {
 
-	it('create a new entity', () => {		
+	it('create a new entity', () => {
 		const storage = new Storage([Component]);
 
 		expect(storage.create()).toBe(0);
@@ -21,10 +21,20 @@ describe('Entity', () => {
 		expect(storage.destroy(entity)).toBe(true);
 	});
 
-	it('destroy a not created entity', () => {
+	it('destroy a non-created entity', () => {
 		const storage = new Storage([Component]);
 
 		expect(storage.destroy(3)).toBe(false);
+	});
+
+	it('destroy a entity and its components', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+
+		storage.insert<Component>(entity, Component);
+
+		expect(storage.destroy(entity)).toBe(true);
+		expect(storage.getPoolInfo(Component).freeSections.length).toBe(1);
 	});
 
 	it('verify if a entity exists', () => {

@@ -159,16 +159,15 @@ describe('Component deletion', () => {
 		const entity = storage.create();
 		storage.insert<Component>(entity, Component);
 
-		storage.remove(entity, Component);
-
+		expect(storage.remove(entity, Component)).toBe(true);
 		expect(storage.getPoolInfo(Component).freeSections.length).toBe(1);
 	});
 
 	it('delete a non-existent component', () => {
 		const storage = new Storage([Component]);
 		const entity = storage.create();
-		storage.remove(entity, Component);
 
+		expect(storage.remove(entity, Component)).toBe(false);
 		expect(storage.getPoolInfo(Component).freeSections.length).toBe(0);
 	});
 
