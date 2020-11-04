@@ -16,7 +16,8 @@ class Component {
 	};
 }
 
-describe('Component', () => {
+
+describe('Component insertion', () => {
 
 	it('insert a component in a entity', () => {
 		const storage = new Storage([Component]);
@@ -58,11 +59,11 @@ describe('Component', () => {
 		});
 	});
 
-	it('throw an error when insert a component in a non created entity', () => {
+	it('throw an error when insert a component in a non-created entity', () => {
 		const storage = new Storage([Component]);
 
 		expect(() => storage.insert<Component>(3, Component))
-			.toThrowError('can not insert a component in a non crated entity');
+			.toThrowError('can not insert a component in a non-crated entity');
 	});
 
 	it('throw an error when insert a component in a deleted entity', () => {
@@ -71,7 +72,7 @@ describe('Component', () => {
 		storage.destroy(entity);
 
 		expect(() => storage.insert<Component>(entity, Component))
-			.toThrowError('can not insert a component in a non crated entity');
+			.toThrowError('can not insert a component in a non-crated entity');
 	});
 
 	it('maps the properties of the inserted component', () => {
@@ -98,15 +99,18 @@ describe('Component', () => {
 			.toBeGreaterThanOrEqual(storage.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
 	});
 
+});
 
-	it('throw an error when retrieve a component of a non crated entity', () => {
+describe('Component return', () => {
+
+	it('throw an error when retrieve a component of a non-crated entity', () => {
 		const storage = new Storage([Component]);
 
 		expect(() => storage.retrieve<Component>(3, Component))
-			.toThrowError('can not retrieve a component of a non crated entity');
+			.toThrowError('can not retrieve a component of a non-crated entity');
 	});
 
-	it('throw an error when retrieve a non inserted component in entity', () => {
+	it('throw an error when retrieve a non-inserted component in entity', () => {
 		const storage = new Storage([Component]);
 		const entity = storage.create();
 
@@ -124,6 +128,35 @@ describe('Component', () => {
 		compRef.prop1 = 250;
 
 		expect(storage.retrieve<Component>(entity, Component)).toStrictEqual(compRef);
+	});
+
+});
+
+describe('Component deletion', () => {
+
+	it('delete an existing component', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+		storage.insert<Component>(entity, Component);
+
+		storage.remove(entity, Component);
+
+		expect(storage.getPoolInfo(Component).freeSections.length).toBe(1);
+	});
+
+	it('delete a non-existent component', () => {
+		const storage = new Storage([Component]);
+		const entity = storage.create();
+		storage.remove(entity, Component);
+
+		expect(storage.getPoolInfo(Component).freeSections.length).toBe(0);
+	});
+
+	it('throw an error when delete a component in a non-existent entity', () => {
+		const storage = new Storage([Component]);
+
+		expect(() => storage.remove(3, Component))
+			.toThrowError('can not delete a component of a non-crated entity');
 	});
 
 });

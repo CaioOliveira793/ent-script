@@ -61,6 +61,7 @@ describe('Storage construction', () => {
 			allocatedSize: 14 * 4,
 			usedSize: 0,
 			increaseSize: 20 * 4,
+			freeSections: []
 		};
 
 		expect(storage.getPoolInfo(Component)).toStrictEqual(expectedPoolInfo);
