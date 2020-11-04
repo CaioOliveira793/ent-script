@@ -97,17 +97,16 @@ class Storage {
 	}
 
 	public destroy = (entity: number): boolean => {
-		if (!this.entities[entity])
-			return false;
+		if (!this.entities[entity]) return false;
 
-		const componentsInEntity = this.generatorIndexInMask(
-			(this.entities[entity] as EntityData).componentMask);
-
+		const componentsInEntity = this.generatorIndexInMask((this.entities[entity] as EntityData).componentMask);
 		for (const componentIndex of componentsInEntity) {
 			const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
-			poolOffset;
 
-			// free buffer region (poolOffset, poolOffset + this.pools[componentIndex].componentSize)
+			(this.entities[entity] as EntityData).componentMask ^= 1 << (componentIndex - 1);
+			(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = undefined as unknown as number;
+
+			this.pools[componentIndex].freeSections.push(poolOffset);
 		}
 
 		this.entities[entity] = null;
@@ -178,7 +177,7 @@ class Storage {
 		return this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
 	}
 
-	public remove = <T>(entity: number, component: ComponentConstructor<T>): void => {
+	public remove = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
 		if (!this.entities[entity])
 			throw new Error('can not delete a component of a non-crated entity');
 
@@ -186,12 +185,13 @@ class Storage {
 		const poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
 
 		// if there is no component in the entity:
-		if (poolOffset === undefined) return;
+		if (poolOffset === undefined) return false;
 
 		(this.entities[entity] as EntityData).componentMask ^= this.componentTranslationTable[component.name].mask;
 		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = undefined as unknown as number;
 
 		this.pools[componentIndex].freeSections.push(poolOffset);
+		return true;
 	}
 
 
@@ -351,12 +351,10 @@ class Storage {
 	}
 
 	private * generatorIndexInMask(mask: number): Generator<number, void, unknown> {
-		const lastBit = mask & 1;
-
 		for (let index = 0; index < 32; index++) {
-			if (lastBit === 1)
+			if ((mask & 1) === 1)
 				yield index;
-			mask >> 1;
+			mask >>= 1;
 		}
 	}
 
