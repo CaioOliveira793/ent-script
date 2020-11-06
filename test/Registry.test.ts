@@ -1,14 +1,14 @@
-import Storage, {
+import Registry, {
 	ComponentConstructor, ComponentInfo, ComponentSchema, MAX_COMPONENTS,
 	PoolInfo, PoolSettings
-} from '../src/Storage';
-import PropertyType from '../src/PropertyTypes';
+} from '../src/Registry';
+import PropertyType, { PropertyTypeToSize } from '../src/PropertyTypes';
 
 
-describe('Storage construction', () => {
+describe('Registry construction', () => {
 
 	it('throw an error when no component is passed', () => {
-		expect(() => new Storage([])).toThrowError('no component was supplied in the Storage constructor');
+		expect(() => new Registry([])).toThrowError('no component was supplied in the Registry constructor');
 	});
 
 	it('throw an error when exceed the max number of components', () => {
@@ -21,7 +21,7 @@ describe('Storage construction', () => {
 			componentsList.push(Component);
 		}
 
-		expect(() => new Storage(componentsList)).toThrowError('max number of 32 components was exceeded');
+		expect(() => new Registry(componentsList)).toThrowError('max number of 32 components was exceeded');
 	});
 
 	it('create a pool with the component', () => {
@@ -29,7 +29,7 @@ describe('Storage construction', () => {
 			static schema: ComponentSchema = { property: PropertyType.BYTE };
 		}
 
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
 		const expectedComponentInfo: ComponentInfo = {
 			name: 'Component',
@@ -42,7 +42,7 @@ describe('Storage construction', () => {
 			}]
 		};
 
-		expect(storage.getComponentInfo(Component)).toStrictEqual(expectedComponentInfo);
+		expect(registry.getComponentInfo(Component)).toStrictEqual(expectedComponentInfo);
 	});
 
 	it('create a pool with the specified settings', () => {
@@ -54,17 +54,17 @@ describe('Storage construction', () => {
 			};
 		}
 
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
 		const expectedPoolInfo: PoolInfo = {
-			componentReference: 'Component',
-			allocatedSize: 14 * 4,
+			componentReference: Component.name,
+			allocatedSize: 14 * PropertyTypeToSize[PropertyType.FLOAT_32],
 			usedSize: 0,
-			increaseSize: 20 * 4,
+			increaseSize: 20 * PropertyTypeToSize[PropertyType.FLOAT_32],
 			freeSections: []
 		};
 
-		expect(storage.getPoolInfo(Component)).toStrictEqual(expectedPoolInfo);
+		expect(registry.getPoolInfo(Component)).toStrictEqual(expectedPoolInfo);
 	});
 
 });
