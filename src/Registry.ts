@@ -60,11 +60,11 @@ export const LITTLE_ENDIAN = ((): boolean => {
 export const MAX_COMPONENTS = 32;
 
 
-class Storage {
+class Registry {
 	constructor(componentConstructors: ComponentConstructor<unknown>[]) {
 		const totalComponents = componentConstructors.length;
 
-		if (totalComponents <= 0) throw new Error('no component was supplied in the Storage constructor');
+		if (totalComponents <= 0) throw new Error('no component was supplied in the Registry constructor');
 		if (totalComponents > MAX_COMPONENTS) throw new Error('max number of 32 components was exceeded');
 
 		this.pools = Array(totalComponents);
@@ -372,4 +372,4 @@ class Storage {
 	private entityIdIncrement: number;
 }
 
-export default Storage;
+export default Registry;

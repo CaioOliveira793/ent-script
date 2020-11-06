@@ -1,5 +1,5 @@
 import PropertyType from '../src/PropertyTypes';
-import Storage, { ComponentSchema, PoolSettings } from '../src/Storage';
+import Registry, { ComponentSchema, PoolSettings } from '../src/Registry';
 
 const POOL_INCREASE_COUNT = 2;
 
@@ -51,23 +51,23 @@ class FullPropertyComponent {
 describe('Component insertion', () => {
 
 	it('insert a component in a entity', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
+		const registry = new Registry([Component]);
+		const entity = registry.create();
 
-		storage.insert<Component>(entity, Component);
-		expect(storage.getPoolInfo(Component).usedSize).toBe(storage.getComponentInfo(Component).size);
+		registry.insert<Component>(entity, Component);
+		expect(registry.getPoolInfo(Component).usedSize).toBe(registry.getComponentInfo(Component).size);
 	});
 
 	it('return the component reference when insert a new component', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 
 		componentRef.Prop3 = -4523;
 		componentRef.prop_2 = 5.23234232;
 		componentRef.prop1 = 120;
 
-		expect(storage.retrieve<Component>(entity, Component)).toStrictEqual({
+		expect(registry.retrieve<Component>(entity, Component)).toStrictEqual({
 			prop1: 120,
 			prop_2: 5.23234232,
 			Prop3: -4523
@@ -75,15 +75,15 @@ describe('Component insertion', () => {
 	});
 
 	it('reset component values when insert in a already created component', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 
 		componentRef.Prop3 = -4523;
 		componentRef.prop_2 = 5.23234232;
 		componentRef.prop1 = 120;
 
-		expect(storage.insert<Component>(entity, Component)).toStrictEqual({
+		expect(registry.insert<Component>(entity, Component)).toStrictEqual({
 			prop1: 1,
 			prop_2: 3.1415,
 			Prop3: 5000
@@ -91,26 +91,26 @@ describe('Component insertion', () => {
 	});
 
 	it('throw an error when insert a component in a non-created entity', () => {
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
-		expect(() => storage.insert<Component>(3, Component))
+		expect(() => registry.insert<Component>(3, Component))
 			.toThrowError('can not insert a component in a non-crated entity');
 	});
 
 	it('throw an error when insert a component in a deleted entity', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		storage.destroy(entity);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		registry.destroy(entity);
 
-		expect(() => storage.insert<Component>(entity, Component))
+		expect(() => registry.insert<Component>(entity, Component))
 			.toThrowError('can not insert a component in a non-crated entity');
 	});
 
 	it('maps the properties of the inserted component', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
+		const registry = new Registry([Component]);
+		const entity = registry.create();
 
-		const componentReference = storage.insert<Component>(entity, Component);
+		const componentReference = registry.insert<Component>(entity, Component);
 		expect(componentReference).toStrictEqual({
 			prop1: 1,
 			prop_2: 3.1415,
@@ -119,35 +119,35 @@ describe('Component insertion', () => {
 	});
 
 	it('increase buffer size when insert new components', () => {
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
 		for (let i = 0; i < POOL_INCREASE_COUNT + 1; i++) {
-			const entity = storage.create();
-			storage.insert<Component>(entity, Component);
+			const entity = registry.create();
+			registry.insert<Component>(entity, Component);
 		}
 
-		expect(storage.getPoolInfo(Component).usedSize)
-			.toBeGreaterThanOrEqual(storage.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
+		expect(registry.getPoolInfo(Component).usedSize)
+			.toBeGreaterThanOrEqual(registry.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
 	});
 
 	it('use free pool section of the previously excluded component', () => {
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
-		const entity1 = storage.create();
-		const entity2 = storage.create();
-		const entity3 = storage.create();
-		const entity4 = storage.create();
+		const entity1 = registry.create();
+		const entity2 = registry.create();
+		const entity3 = registry.create();
+		const entity4 = registry.create();
 
-		storage.insert<Component>(entity1, Component);
-		storage.insert<Component>(entity2, Component);
-		storage.insert<Component>(entity3, Component);
+		registry.insert<Component>(entity1, Component);
+		registry.insert<Component>(entity2, Component);
+		registry.insert<Component>(entity3, Component);
 
-		storage.remove<Component>(entity2, Component);
-		expect(storage.getPoolInfo(Component).freeSections.length).toBe(1);
+		registry.remove<Component>(entity2, Component);
+		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
 
-		storage.insert<Component>(entity4, Component);
-		expect(storage.getPoolInfo(Component).freeSections.length).toBe(0);
-		expect(storage.getPoolInfo(Component).usedSize).toBe(storage.getComponentInfo(Component).size * 3);
+		registry.insert<Component>(entity4, Component);
+		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
+		expect(registry.getPoolInfo(Component).usedSize).toBe(registry.getComponentInfo(Component).size * 3);
 	});
 
 });
@@ -155,49 +155,49 @@ describe('Component insertion', () => {
 describe('Component return', () => {
 
 	it('throw an error when retrieve a component of a non-crated entity', () => {
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
-		expect(() => storage.retrieve<Component>(3, Component))
+		expect(() => registry.retrieve<Component>(3, Component))
 			.toThrowError('can not retrieve a component of a non-crated entity');
 	});
 
 	it('throw an error when retrieve a non-inserted component in entity', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
+		const registry = new Registry([Component]);
+		const entity = registry.create();
 
-		expect(() => storage.retrieve<Component>(entity, Component))
+		expect(() => registry.retrieve<Component>(entity, Component))
 			.toThrowError(`entity does not have component ${Component.name} to retrieve`);
 	});
 
 	it('retrieve the component reference', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const compRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const compRef = registry.insert<Component>(entity, Component);
 
 		compRef.Prop3 = -3000;
 		compRef.prop_2 = 1.618;
 		compRef.prop1 = 250;
 
-		expect(storage.retrieve<Component>(entity, Component)).toStrictEqual(compRef);
+		expect(registry.retrieve<Component>(entity, Component)).toStrictEqual(compRef);
 	});
 
 	it('maps properties to return in component reference', () => {
-		const storage = new Storage([FullPropertyComponent]);
-		const entity = storage.create();
-		storage.insert<FullPropertyComponent>(entity, FullPropertyComponent);
+		const registry = new Registry([FullPropertyComponent]);
+		const entity = registry.create();
+		registry.insert<FullPropertyComponent>(entity, FullPropertyComponent);
 
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_8).toBe(250);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_16).toBe(65000);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_32).toBe(4200000000);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_64).toBe(BigInt(8446744073709551615));
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_8).toBe(250);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_16).toBe(65000);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_32).toBe(4200000000);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_64).toBe(BigInt(8446744073709551615));
 
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_8).toBe(-120);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_16).toBe(-32000);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_32).toBe(-2100000000);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_64).toBe(BigInt(-844674407370955));
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_8).toBe(-120);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_16).toBe(-32000);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_32).toBe(-2100000000);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_64).toBe(BigInt(-844674407370955));
 
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).float_32).toBeGreaterThanOrEqual(3.141592653589793238);
-		expect(storage.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).float_64).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).float_32).toBeGreaterThanOrEqual(3.141592653589793238);
+		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).float_64).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
 	});
 
 });
@@ -205,26 +205,26 @@ describe('Component return', () => {
 describe('Component deletion', () => {
 
 	it('delete an existing component', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		registry.insert<Component>(entity, Component);
 
-		expect(storage.remove(entity, Component)).toBe(true);
-		expect(storage.getPoolInfo(Component).freeSections.length).toBe(1);
+		expect(registry.remove(entity, Component)).toBe(true);
+		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
 	});
 
 	it('delete a non-existent component', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
+		const registry = new Registry([Component]);
+		const entity = registry.create();
 
-		expect(storage.remove(entity, Component)).toBe(false);
-		expect(storage.getPoolInfo(Component).freeSections.length).toBe(0);
+		expect(registry.remove(entity, Component)).toBe(false);
+		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
 	});
 
 	it('throw an error when delete a component in a non-existent entity', () => {
-		const storage = new Storage([Component]);
+		const registry = new Registry([Component]);
 
-		expect(() => storage.remove(3, Component))
+		expect(() => registry.remove(3, Component))
 			.toThrowError('can not delete a component of a non-crated entity');
 	});
 

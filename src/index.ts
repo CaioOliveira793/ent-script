@@ -1,5 +1,5 @@
-import Storage from './Storage';
-export default Storage;
+import Registry from './Registry';
+export default Registry;
 
-export * from './Storage';
+export * from './Registry';
 export * from './PropertyTypes';

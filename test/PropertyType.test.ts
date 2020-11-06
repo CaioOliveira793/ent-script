@@ -1,5 +1,5 @@
 import PropertyType from '../src/PropertyTypes';
-import Storage, { ComponentSchema, PoolSettings } from '../src/Storage';
+import Registry, { ComponentSchema, PoolSettings } from '../src/Registry';
 
 const POOL_INCREASE_COUNT = 5;
 
@@ -38,74 +38,74 @@ class Component {
 describe('Property Types', () => {
 
 	it('create a reference for unsigned int 8 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.u_int_8).toBe(250);
 	});
 
 	it('create a reference for unsigned int 16 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.u_int_16).toBe(65000);
 	});
 
 	it('create a reference for unsigned int 32 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.u_int_32).toBe(4200000000);
 	});
 
 	it('create a reference for unsigned int 64 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.u_int_64).toBe(BigInt(8446744073709551615));
 	});
 
 
 	it('create a reference for signed int 8 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.int_8).toBe(-120);
 	});
 
 	it('create a reference for signed int 16 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.int_16).toBe(-32000);
 	});
 
 	it('create a reference for signed int 32 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.int_32).toBe(-2100000000);
 	});
 
 	it('create a reference for signed int 64 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.int_64).toBe(BigInt(-844674407370955));
 	});
 
 
 	it('create a reference for float 32 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.float_32).toBeGreaterThanOrEqual(3.141592653589793238);
 	});
 
 	it('create a reference for float 64 type', () => {
-		const storage = new Storage([Component]);
-		const entity = storage.create();
-		const componentRef = storage.insert<Component>(entity, Component);
+		const registry = new Registry([Component]);
+		const entity = registry.create();
+		const componentRef = registry.insert<Component>(entity, Component);
 		expect(componentRef.float_32).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
 	});
 
