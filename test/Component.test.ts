@@ -52,22 +52,22 @@ describe('Component insertion', () => {
 
 	it('insert a component in a entity', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
+		const entity = registry.createEntity();
 
-		registry.insert<Component>(entity, Component);
+		registry.insertComponent<Component>(entity, Component);
 		expect(registry.getPoolInfo(Component).usedSize).toBe(registry.getComponentInfo(Component).size);
 	});
 
 	it('return the component reference when insert a new component', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
-		const componentRef = registry.insert<Component>(entity, Component);
+		const entity = registry.createEntity();
+		const componentRef = registry.insertComponent<Component>(entity, Component);
 
 		componentRef.Prop3 = -4523;
 		componentRef.prop_2 = 5.23234232;
 		componentRef.prop1 = 120;
 
-		expect(registry.retrieve<Component>(entity, Component)).toStrictEqual({
+		expect(registry.getComponent<Component>(entity, Component)).toStrictEqual({
 			prop1: 120,
 			prop_2: 5.23234232,
 			Prop3: -4523
@@ -76,14 +76,14 @@ describe('Component insertion', () => {
 
 	it('reset component values when insert in a already created component', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
-		const componentRef = registry.insert<Component>(entity, Component);
+		const entity = registry.createEntity();
+		const componentRef = registry.insertComponent<Component>(entity, Component);
 
 		componentRef.Prop3 = -4523;
 		componentRef.prop_2 = 5.23234232;
 		componentRef.prop1 = 120;
 
-		expect(registry.insert<Component>(entity, Component)).toStrictEqual({
+		expect(registry.insertComponent<Component>(entity, Component)).toStrictEqual({
 			prop1: 1,
 			prop_2: 3.1415,
 			Prop3: 5000
@@ -93,24 +93,24 @@ describe('Component insertion', () => {
 	it('throw an error when insert a component in a non-created entity', () => {
 		const registry = new Registry([Component]);
 
-		expect(() => registry.insert<Component>(3, Component))
+		expect(() => registry.insertComponent<Component>(3, Component))
 			.toThrowError('can not insert a component in a non-crated entity');
 	});
 
 	it('throw an error when insert a component in a deleted entity', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
-		registry.destroy(entity);
+		const entity = registry.createEntity();
+		registry.destroyEntity(entity);
 
-		expect(() => registry.insert<Component>(entity, Component))
+		expect(() => registry.insertComponent<Component>(entity, Component))
 			.toThrowError('can not insert a component in a non-crated entity');
 	});
 
 	it('maps the properties of the inserted component', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
+		const entity = registry.createEntity();
 
-		const componentReference = registry.insert<Component>(entity, Component);
+		const componentReference = registry.insertComponent<Component>(entity, Component);
 		expect(componentReference).toStrictEqual({
 			prop1: 1,
 			prop_2: 3.1415,
@@ -122,8 +122,8 @@ describe('Component insertion', () => {
 		const registry = new Registry([Component]);
 
 		for (let i = 0; i < POOL_INCREASE_COUNT + 1; i++) {
-			const entity = registry.create();
-			registry.insert<Component>(entity, Component);
+			const entity = registry.createEntity();
+			registry.insertComponent<Component>(entity, Component);
 		}
 
 		expect(registry.getPoolInfo(Component).usedSize)
@@ -133,19 +133,19 @@ describe('Component insertion', () => {
 	it('use free pool section of the previously excluded component', () => {
 		const registry = new Registry([Component]);
 
-		const entity1 = registry.create();
-		const entity2 = registry.create();
-		const entity3 = registry.create();
-		const entity4 = registry.create();
+		const entity1 = registry.createEntity();
+		const entity2 = registry.createEntity();
+		const entity3 = registry.createEntity();
+		const entity4 = registry.createEntity();
 
-		registry.insert<Component>(entity1, Component);
-		registry.insert<Component>(entity2, Component);
-		registry.insert<Component>(entity3, Component);
+		registry.insertComponent<Component>(entity1, Component);
+		registry.insertComponent<Component>(entity2, Component);
+		registry.insertComponent<Component>(entity3, Component);
 
-		registry.remove<Component>(entity2, Component);
+		registry.removeComponent<Component>(entity2, Component);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
 
-		registry.insert<Component>(entity4, Component);
+		registry.insertComponent<Component>(entity4, Component);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
 		expect(registry.getPoolInfo(Component).usedSize).toBe(registry.getComponentInfo(Component).size * 3);
 	});
@@ -157,47 +157,47 @@ describe('Component return', () => {
 	it('throw an error when retrieve a component of a non-crated entity', () => {
 		const registry = new Registry([Component]);
 
-		expect(() => registry.retrieve<Component>(3, Component))
+		expect(() => registry.getComponent<Component>(3, Component))
 			.toThrowError('can not retrieve a component of a non-crated entity');
 	});
 
 	it('throw an error when retrieve a non-inserted component in entity', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
+		const entity = registry.createEntity();
 
-		expect(() => registry.retrieve<Component>(entity, Component))
+		expect(() => registry.getComponent<Component>(entity, Component))
 			.toThrowError(`entity does not have component ${Component.name} to retrieve`);
 	});
 
 	it('retrieve the component reference', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
-		const compRef = registry.insert<Component>(entity, Component);
+		const entity = registry.createEntity();
+		const compRef = registry.insertComponent<Component>(entity, Component);
 
 		compRef.Prop3 = -3000;
 		compRef.prop_2 = 1.618;
 		compRef.prop1 = 250;
 
-		expect(registry.retrieve<Component>(entity, Component)).toStrictEqual(compRef);
+		expect(registry.getComponent<Component>(entity, Component)).toStrictEqual(compRef);
 	});
 
 	it('maps properties to return in component reference', () => {
 		const registry = new Registry([FullPropertyComponent]);
-		const entity = registry.create();
-		registry.insert<FullPropertyComponent>(entity, FullPropertyComponent);
+		const entity = registry.createEntity();
+		registry.insertComponent<FullPropertyComponent>(entity, FullPropertyComponent);
 
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_8).toBe(250);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_16).toBe(65000);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_32).toBe(4200000000);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).u_int_64).toBe(BigInt(8446744073709551615));
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_8).toBe(250);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_16).toBe(65000);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_32).toBe(4200000000);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_64).toBe(BigInt(8446744073709551615));
 
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_8).toBe(-120);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_16).toBe(-32000);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_32).toBe(-2100000000);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).int_64).toBe(BigInt(-844674407370955));
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_8).toBe(-120);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_16).toBe(-32000);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_32).toBe(-2100000000);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_64).toBe(BigInt(-844674407370955));
 
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).float_32).toBeGreaterThanOrEqual(3.141592653589793238);
-		expect(registry.retrieve<FullPropertyComponent>(entity, FullPropertyComponent).float_64).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).float_32).toBeGreaterThanOrEqual(3.141592653589793238);
+		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).float_64).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
 	});
 
 });
@@ -206,25 +206,25 @@ describe('Component deletion', () => {
 
 	it('delete an existing component', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
-		registry.insert<Component>(entity, Component);
+		const entity = registry.createEntity();
+		registry.insertComponent<Component>(entity, Component);
 
-		expect(registry.remove(entity, Component)).toBe(true);
+		expect(registry.removeComponent(entity, Component)).toBe(true);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
 	});
 
 	it('delete a non-existent component', () => {
 		const registry = new Registry([Component]);
-		const entity = registry.create();
+		const entity = registry.createEntity();
 
-		expect(registry.remove(entity, Component)).toBe(false);
+		expect(registry.removeComponent(entity, Component)).toBe(false);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
 	});
 
 	it('throw an error when delete a component in a non-existent entity', () => {
 		const registry = new Registry([Component]);
 
-		expect(() => registry.remove(3, Component))
+		expect(() => registry.removeComponent(3, Component))
 			.toThrowError('can not delete a component of a non-crated entity');
 	});
 

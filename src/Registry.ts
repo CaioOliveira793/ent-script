@@ -88,7 +88,7 @@ class Registry {
 
 	// entity //////////////////////////////////////////////////
 
-	public create = (): number => {
+	public createEntity = (): number => {
 		this.entities[this.entityIdIncrement] = {
 			componentMask: 0,
 			componentPoolOffset: []
@@ -96,7 +96,7 @@ class Registry {
 		return this.entityIdIncrement++;
 	}
 
-	public destroy = (entity: number): boolean => {
+	public destroyEntity = (entity: number): boolean => {
 		if (!this.entities[entity]) return false;
 
 		const componentsInEntity = this.generatorIndexInMask((this.entities[entity] as EntityData).componentMask);
@@ -120,7 +120,7 @@ class Registry {
 
 	// component ///////////////////////////////////////////////
 
-	public insert = <T>(entity: number, component: ComponentConstructor<T>, ...args: unknown[]): T => {
+	public insertComponent = <T>(entity: number, component: ComponentConstructor<T>, ...args: unknown[]): T => {
 		if (!this.entities[entity])
 			throw new Error('can not insert a component in a non-crated entity');
 
@@ -163,7 +163,7 @@ class Registry {
 		return componentRef;
 	}
 
-	public retrieve = <T>(entity: number, component: ComponentConstructor<T>): T => {
+	public getComponent = <T>(entity: number, component: ComponentConstructor<T>): T => {
 		if (!this.entities[entity])
 			throw new Error('can not retrieve a component of a non-crated entity');
 
@@ -177,7 +177,7 @@ class Registry {
 		return this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
 	}
 
-	public remove = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
+	public removeComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
 		if (!this.entities[entity])
 			throw new Error('can not delete a component of a non-crated entity');
 
