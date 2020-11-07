@@ -55,11 +55,17 @@ describe('Registry construction', () => {
 		const registry = new Registry([Component]);
 
 		const expectedPoolInfo: PoolInfo = {
-			componentReference: Component.name,
 			allocatedSize: 14 * PropertyTypeToSize[PropertyType.FLOAT_32],
 			usedSize: 0,
 			increaseSize: 20 * PropertyTypeToSize[PropertyType.FLOAT_32],
-			freeSections: []
+			freeSections: [],
+			componentSize: PropertyTypeToSize[PropertyType.FLOAT_32],
+			layout: [{
+				name: 'property',
+				offset: 0,
+				size: PropertyTypeToSize[PropertyType.FLOAT_32],
+				type: PropertyType.FLOAT_32
+			}]
 		};
 
 		expect(registry.getPoolInfo(Component)).toStrictEqual(expectedPoolInfo);
