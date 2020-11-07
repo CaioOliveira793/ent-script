@@ -1,8 +1,6 @@
-import Registry, {
-	ComponentConstructor, ComponentInfo, ComponentSchema, MAX_COMPONENTS,
-	PoolInfo, PoolSettings
-} from '../src/Registry';
-import PropertyType, { PropertyTypeToSize } from '../src/PropertyTypes';
+import Registry, { ComponentSchema, ComponentConstructor, ComponentInfo, PoolSettings,
+	PoolInfo, PropertyType, PropertyTypeToSize, MAX_COMPONENTS
+} from '../src/index';
 
 
 describe('Registry construction', () => {

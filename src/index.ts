@@ -3,3 +3,4 @@ export default Registry;
 
 export * from './Registry';
 export * from './PropertyTypes';
+export * from './Pool';

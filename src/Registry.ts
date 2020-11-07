@@ -1,41 +1,19 @@
-import PropertyType, { PropertyTypeToSize } from './PropertyTypes';
+import Pool, { PoolSettings, PoolSchema, ComponentProperty } from './Pool';
+import PropertyType from './PropertyTypes';
 
 
-export interface ComponentSchema {
-	[propertyName: string]: PropertyType;
-}
-
-export interface PoolSettings {
-	initialCount: number;
-	increaseCount: number;
-}
+export type ComponentSchema = PoolSchema;
 
 export interface ComponentConstructor<T> extends Function {
 	new(...args: unknown[]): T;
-	schema: ComponentSchema;
+	schema: PoolSchema;
 	poolSettings?: PoolSettings;
-}
-
-interface ComponentProperty {
-	readonly name: string;
-	readonly type: PropertyType;
-	readonly size: number;
-	readonly offset: number;
 }
 
 export interface ComponentInfo {
 	readonly name: string;
 	readonly size: number;
 	readonly properties: ComponentProperty[];
-}
-
-interface Pool {
-	buffer: ArrayBuffer;
-	readonly componentSize: number;
-	readonly componentLayout: ComponentProperty[];
-	usedSize: number;
-	increaseSize: number;
-	freeSections: number[];
 }
 
 export interface PoolInfo {
@@ -78,7 +56,7 @@ class Registry {
 			this.componentTranslationTable[component.name] = { mask, index };
 
 			// create pools of components:
-			this.createPools(component, index);
+			this.pools[index] = new Pool(component.schema, component.poolSettings);
 			index++;
 		}
 
@@ -221,31 +199,6 @@ class Registry {
 
 
 	/// private members ////////////////////////////////////////
-
-	private createPools = (component: ComponentConstructor<unknown>, poolIndex: number): void => {
-		let componentSize = 0;
-		const componentLayout: ComponentProperty[] = [];
-
-		for (const propertyName in component.schema) {
-			const propertySize = PropertyTypeToSize[component.schema[propertyName]];
-			componentLayout.push({
-				name: propertyName,
-				type: component.schema[propertyName],
-				size: propertySize,
-				offset: componentSize
-			});
-			componentSize += propertySize;
-		}
-
-		this.pools[poolIndex] = {
-			buffer: new ArrayBuffer((component.poolSettings?.initialCount ?? 10) * componentSize),
-			componentSize,
-			componentLayout,
-			usedSize: 0,
-			increaseSize: (component.poolSettings?.increaseCount ?? 10) * componentSize,
-			freeSections: []
-		};
-	}
 
 	private createComponentRef = <T>(
 		poolView: DataView,

@@ -1,5 +1,4 @@
-import PropertyType from '../src/PropertyTypes';
-import Registry, { ComponentSchema, PoolSettings } from '../src/Registry';
+import Registry, { ComponentSchema, PoolSettings, PropertyType } from '../src/index';
 
 const POOL_INCREASE_COUNT = 2;
 
