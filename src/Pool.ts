@@ -11,6 +11,15 @@ export interface PoolSettings {
 	increaseCount: number;
 }
 
+export interface PoolInfo {
+	readonly allocatedSize: number;
+	readonly usedSize: number;
+	readonly increaseSize: number;
+	readonly freeSections: number[];
+	readonly componentSize: number;
+	readonly layout: ComponentProperty[];
+}
+
 export interface ComponentProperty {
 	readonly name: string;
 	readonly type: PropertyType;
@@ -67,6 +76,22 @@ class Pool {
 	public getComponentReference = <T>(poolOffset: number): T => {
 		const poolView = new DataView(this.buffer, poolOffset, this.componentSize);
 		return this.createComponentReference<T>(poolView);
+	}
+
+	public deleteComponent = (poolOffset: number): void => {
+		this.freeSections.push(poolOffset);
+	}
+
+
+	public getInfo = (): PoolInfo => {
+		return {
+			allocatedSize: this.buffer.byteLength,
+			usedSize: this.usedSize,
+			increaseSize: this.increaseSize,
+			freeSections: this.freeSections,
+			componentSize: this.componentSize,
+			layout: this.componentLayout
+		};
 	}
 
 
@@ -179,12 +204,12 @@ class Pool {
 		this.buffer = newLargerBuffer;
 	}
 
-	public buffer: ArrayBuffer;
-	public readonly componentSize: number;
-	public readonly componentLayout: ComponentProperty[];
-	public usedSize: number;
-	public increaseSize: number;
-	public freeSections: number[];
+	private buffer: ArrayBuffer;
+	private readonly componentSize: number;
+	private readonly componentLayout: ComponentProperty[];
+	private usedSize: number;
+	private increaseSize: number;
+	private freeSections: number[];
 }
 
 export default Pool;
