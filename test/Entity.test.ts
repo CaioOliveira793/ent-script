@@ -1,5 +1,4 @@
-import PropertyType from '../src/PropertyTypes';
-import Registry, { ComponentSchema } from '../src/Registry';
+import Registry, { ComponentSchema, PropertyType } from '../src/index';
 
 
 class Component {
