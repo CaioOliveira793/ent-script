@@ -1,5 +1,6 @@
 import Pool, { PoolSettings, PoolSchema, ComponentProperty } from './Pool';
 import PropertyType from './PropertyTypes';
+import LITTLE_ENDIAN from './utils/LittleEndian';
 
 
 export type ComponentSchema = PoolSchema;
@@ -28,12 +29,6 @@ interface EntityData {
 	componentMask: number;
 	componentPoolOffset: number[];
 }
-
-export const LITTLE_ENDIAN = ((): boolean => {
-	const buffer = new ArrayBuffer(2);
-	new DataView(buffer).setInt16(0, 256, true /* littleEndian */);
-	return new Int16Array(buffer)[0] === 256;
-})();
 
 export const MAX_COMPONENTS = 32;
 
@@ -105,40 +100,20 @@ class Registry {
 		const componentData = new component(...args);
 		const componentIndex = this.componentTranslationTable[component.name].index;
 
-		let poolOffset = (this.entities[entity] as EntityData).componentPoolOffset[componentIndex];
-		let shouldIncreaseUsedSize = true;
-
-		if (poolOffset === undefined && this.pools[componentIndex].freeSections.length >= 1) {
-			poolOffset = this.pools[componentIndex].freeSections.pop() as number;
-			shouldIncreaseUsedSize = false;
-		} else
-			poolOffset = this.pools[componentIndex].usedSize;
-
-		// increase buffer size:
-		if (this.pools[componentIndex].buffer.byteLength === poolOffset) {
-			const newLargerBuffer = new ArrayBuffer(this.pools[componentIndex].usedSize + this.pools[componentIndex].increaseSize);
-			const oldBufferView = new Uint8Array(this.pools[componentIndex].buffer);
-			(new Uint8Array(newLargerBuffer)).set(oldBufferView);
-
-			this.pools[componentIndex].buffer = newLargerBuffer;
+		const existentPoolOffset = this.entities[entity]?.componentPoolOffset[componentIndex];
+		if (existentPoolOffset !== undefined) {
+			const componentReference = this.pools[componentIndex].getComponentReference<T>(existentPoolOffset);
+			for (const prop in componentReference)
+				componentReference[prop] = componentData[prop];
+			return componentReference;
 		}
 
-		// if it's a new component:
-		if ((this.entities[entity] as EntityData).componentPoolOffset[componentIndex] === undefined) {
-			// update the entity:
-			(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
-			(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = poolOffset;
+		const { componentReference, poolOffset } = this.pools[componentIndex].insertComponent<T>(componentData);
 
-			// update the pool used size:
-			if (shouldIncreaseUsedSize)
-				this.pools[componentIndex].usedSize += this.pools[componentIndex].componentSize;
-		}
+		(this.entities[entity] as EntityData).componentMask |= this.componentTranslationTable[component.name].mask;
+		(this.entities[entity] as EntityData).componentPoolOffset[componentIndex] = poolOffset;
 
-		const poolView = new DataView(this.pools[componentIndex].buffer, poolOffset, this.pools[componentIndex].componentSize);
-		const componentRef = this.createComponentRef<T>(poolView, this.pools[componentIndex].componentLayout);
-		for (const prop in componentRef) componentRef[prop] = componentData[prop];
-
-		return componentRef;
+		return componentReference;
 	}
 
 	public getComponent = <T>(entity: number, component: ComponentConstructor<T>): T => {
