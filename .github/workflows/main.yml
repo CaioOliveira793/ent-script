@@ -4,13 +4,12 @@ on:
     types: [ opened, synchronize, reopened ]
 jobs:
   build:
-    name: Build, lint, and test on Node ${{ matrix.node }} and ubuntu-latest
+    name: Lint, test and build on Node ${{ matrix.node }}
 
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node: ['12.x', '14.x']
-        os: ubuntu-latest
 
     steps:
       - name: Checkout repo
