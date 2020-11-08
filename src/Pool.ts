@@ -32,7 +32,7 @@ export const DEFAULT_POOL_INITIAL_COUNT = 100;
 export const DEFAULT_POOL_INCREASE_COUNT = 10;
 
 
-class Pool {
+export class Pool {
 	constructor(schema: PoolSchema, settings?: PoolSettings) {
 		let sectionSize = 0;
 		const layout: PoolSectionLayout[] = [];

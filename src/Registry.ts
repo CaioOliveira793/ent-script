@@ -27,7 +27,7 @@ interface CompoenentLookupTable {
 export const REGISTRY_MAX_COMPONENTS = 32;
 
 
-class Registry {
+export class Registry {
 	constructor(componentConstructors: ComponentConstructor<unknown>[]) {
 		const totalComponents = componentConstructors.length;
 
