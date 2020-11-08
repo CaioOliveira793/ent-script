@@ -1,5 +1,5 @@
 import Pool, { PoolSettings, PoolSchema, PoolInfo, PoolSectionLayout } from './Pool';
-
+import indexInMask from './generators/IndexInMask';
 
 export type ComponentSchema = PoolSchema;
 
@@ -66,7 +66,7 @@ class Registry {
 	public destroyEntity = (entity: number): boolean => {
 		if (!this.entities[entity]) return false;
 
-		const componentsInEntity = this.generatorIndexInMask(this.entities[entity].componentMask);
+		const componentsInEntity = indexInMask(this.entities[entity].componentMask);
 		for (const componentIndex of componentsInEntity) {
 			const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
 			this.pools[componentIndex].deleteSection(poolOffset);
@@ -152,17 +152,6 @@ class Registry {
 	public getPoolInfo = (component: ComponentConstructor<unknown>): PoolInfo => {
 		const poolIndex = this.compoenentLookupTable[component.name].index;
 		return this.pools[poolIndex].getInfo();
-	}
-
-
-	/// private members ////////////////////////////////////////
-
-	private * generatorIndexInMask(mask: number): Generator<number, void, unknown> {
-		for (let index = 0; index < 32; index++) {
-			if ((mask & 1) === 1)
-				yield index;
-			mask >>= 1;
-		}
 	}
 
 
