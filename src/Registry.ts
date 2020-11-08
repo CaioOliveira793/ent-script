@@ -1,4 +1,4 @@
-import Pool, { PoolSettings, PoolSchema, PoolInfo, ComponentProperty } from './Pool';
+import Pool, { PoolSettings, PoolSchema, PoolInfo, PoolSectionLayout } from './Pool';
 
 
 export type ComponentSchema = PoolSchema;
@@ -12,7 +12,7 @@ export interface ComponentConstructor<T> extends Function {
 export interface ComponentInfo {
 	readonly name: string;
 	readonly size: number;
-	readonly properties: ComponentProperty[];
+	readonly properties: PoolSectionLayout[];
 }
 
 interface EntityData {
@@ -69,7 +69,7 @@ class Registry {
 		const componentsInEntity = this.generatorIndexInMask(this.entities[entity].componentMask);
 		for (const componentIndex of componentsInEntity) {
 			const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
-			this.pools[componentIndex].deleteComponent(poolOffset);
+			this.pools[componentIndex].deleteSection(poolOffset);
 		}
 
 		this.entities[entity] = undefined as unknown as EntityData;
@@ -92,18 +92,18 @@ class Registry {
 
 		const existentPoolOffset = this.entities[entity]?.componentPoolOffset[componentIndex];
 		if (existentPoolOffset !== undefined) {
-			const componentReference = this.pools[componentIndex].getComponentReference<T>(existentPoolOffset);
+			const componentReference = this.pools[componentIndex].getSectionReference<T>(existentPoolOffset);
 			for (const prop in componentReference)
 				componentReference[prop] = componentData[prop];
 			return componentReference;
 		}
 
-		const { componentReference, poolOffset } = this.pools[componentIndex].insertComponent<T>(componentData);
+		const { sectionReference, offset } = this.pools[componentIndex].insertSection<T>(componentData);
 
 		this.entities[entity].componentMask |= this.compoenentLookupTable[component.name].mask;
-		this.entities[entity].componentPoolOffset[componentIndex] = poolOffset;
+		this.entities[entity].componentPoolOffset[componentIndex] = offset;
 
-		return componentReference;
+		return sectionReference;
 	}
 
 	public getComponent = <T>(entity: number, component: ComponentConstructor<T>): T => {
@@ -116,7 +116,7 @@ class Registry {
 		if (poolOffset === undefined)
 			throw new Error(`entity does not have component ${component.name} to retrieve`);
 
-		return this.pools[componentIndex].getComponentReference(poolOffset);
+		return this.pools[componentIndex].getSectionReference(poolOffset);
 	}
 
 	public removeComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
@@ -131,7 +131,7 @@ class Registry {
 		this.entities[entity].componentMask ^= this.compoenentLookupTable[component.name].mask;
 		this.entities[entity].componentPoolOffset[componentIndex] = undefined as unknown as number;
 
-		this.pools[componentIndex].deleteComponent(poolOffset);
+		this.pools[componentIndex].deleteSection(poolOffset);
 		return true;
 	}
 
@@ -144,8 +144,8 @@ class Registry {
 
 		return {
 			name: component.name,
-			size: poolInfo.componentSize,
-			properties: poolInfo.layout
+			size: poolInfo.sectionSize,
+			properties: poolInfo.sectionLayout
 		};
 	}
 

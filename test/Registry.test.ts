@@ -1,4 +1,5 @@
-import Registry, { ComponentSchema, ComponentConstructor, ComponentInfo, PoolSettings,
+import Registry, {
+	ComponentSchema, ComponentConstructor, ComponentInfo, PoolSettings,
 	PoolInfo, PropertyType, PropertyTypeToSize, MAX_COMPONENTS
 } from '../src/index';
 
@@ -6,7 +7,8 @@ import Registry, { ComponentSchema, ComponentConstructor, ComponentInfo, PoolSet
 describe('Registry construction', () => {
 
 	it('throw an error when no component is passed', () => {
-		expect(() => new Registry([])).toThrowError('no component was supplied in the Registry constructor');
+		expect(() => new Registry([]))
+			.toThrowError('no component was supplied in the Registry constructor');
 	});
 
 	it('throw an error when exceed the max number of components', () => {
@@ -19,7 +21,8 @@ describe('Registry construction', () => {
 			componentsList.push(Component);
 		}
 
-		expect(() => new Registry(componentsList)).toThrowError('max number of 32 components was exceeded');
+		expect(() => new Registry(componentsList))
+			.toThrowError('max number of 32 components was exceeded');
 	});
 
 	it('create a pool with the component', () => {
@@ -59,8 +62,8 @@ describe('Registry construction', () => {
 			usedSize: 0,
 			increaseSize: 20 * PropertyTypeToSize[PropertyType.FLOAT_32],
 			freeSections: [],
-			componentSize: PropertyTypeToSize[PropertyType.FLOAT_32],
-			layout: [{
+			sectionSize: PropertyTypeToSize[PropertyType.FLOAT_32],
+			sectionLayout: [{
 				name: 'property',
 				offset: 0,
 				size: PropertyTypeToSize[PropertyType.FLOAT_32],

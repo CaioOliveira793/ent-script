@@ -16,11 +16,11 @@ export interface PoolInfo {
 	readonly usedSize: number;
 	readonly increaseSize: number;
 	readonly freeSections: number[];
-	readonly componentSize: number;
-	readonly layout: ComponentProperty[];
+	readonly sectionSize: number;
+	readonly sectionLayout: PoolSectionLayout[];
 }
 
-export interface ComponentProperty {
+export interface PoolSectionLayout {
 	readonly name: string;
 	readonly type: PropertyType;
 	readonly size: number;
@@ -30,55 +30,55 @@ export interface ComponentProperty {
 
 class Pool {
 	constructor(schema: PoolSchema, settings?: PoolSettings) {
-		let componentSize = 0;
-		const componentLayout: ComponentProperty[] = [];
+		let sectionSize = 0;
+		const layout: PoolSectionLayout[] = [];
 
 		for (const propertyName in schema) {
 			const propertySize = PropertyTypeToSize[schema[propertyName]];
-			componentLayout.push({
+			layout.push({
 				name: propertyName,
 				type: schema[propertyName],
 				size: propertySize,
-				offset: componentSize
+				offset: sectionSize
 			});
-			componentSize += propertySize;
+			sectionSize += propertySize;
 		}
 
-		this.buffer = new ArrayBuffer((settings?.initialCount ?? 10) * componentSize);
-		this.componentSize = componentSize;
-		this.componentLayout = componentLayout;
+		this.buffer = new ArrayBuffer((settings?.initialCount ?? 10) * sectionSize);
+		this.sectionSize = sectionSize;
+		this.sectionLayout = layout;
 		this.usedSize = 0;
-		this.increaseSize = (settings?.increaseCount ?? 10) * componentSize;
+		this.increaseSize = (settings?.increaseCount ?? 10) * sectionSize;
 		this.freeSections = [];
 	}
 
-	public insertComponent = <T>(component: T): { componentReference: T, poolOffset: number } => {
-		let poolOffset: number;
+	public insertSection = <T>(section: T): { sectionReference: T, offset: number } => {
+		let offset: number;
 
 		if (this.freeSections.length >= 1) {
-			poolOffset = this.freeSections.pop() as number;
+			offset = this.freeSections.pop() as number;
 		} else {
-			poolOffset = this.usedSize;
-			this.usedSize += this.componentSize;
+			offset = this.usedSize;
+			this.usedSize += this.sectionSize;
 		}
 
-		if (this.buffer.byteLength === poolOffset) {
+		if (this.buffer.byteLength === offset) {
 			this.increaseBufferSize();
 		}
 
-		const poolView = new DataView(this.buffer, poolOffset, this.componentSize);
-		const componentReference = this.createComponentReference<T>(poolView);
-		for (const prop in componentReference) componentReference[prop] = component[prop];
+		const poolView = new DataView(this.buffer, offset, this.sectionSize);
+		const sectionReference = this.createSectionReference<T>(poolView);
+		for (const prop in sectionReference) sectionReference[prop] = section[prop];
 
-		return { componentReference, poolOffset };
+		return { sectionReference, offset };
 	}
 
-	public getComponentReference = <T>(poolOffset: number): T => {
-		const poolView = new DataView(this.buffer, poolOffset, this.componentSize);
-		return this.createComponentReference<T>(poolView);
+	public getSectionReference = <T>(poolOffset: number): T => {
+		const poolView = new DataView(this.buffer, poolOffset, this.sectionSize);
+		return this.createSectionReference<T>(poolView);
 	}
 
-	public deleteComponent = (poolOffset: number): void => {
+	public deleteSection = (poolOffset: number): void => {
 		this.freeSections.push(poolOffset);
 	}
 
@@ -89,20 +89,20 @@ class Pool {
 			usedSize: this.usedSize,
 			increaseSize: this.increaseSize,
 			freeSections: this.freeSections,
-			componentSize: this.componentSize,
-			layout: this.componentLayout
+			sectionSize: this.sectionSize,
+			sectionLayout: this.sectionLayout
 		};
 	}
 
 
 
-	private createComponentReference = <T>(poolView: DataView): T => {
-		const componentRef = {} as T;
+	private createSectionReference = <T>(poolView: DataView): T => {
+		const sectionRef = {} as T;
 
-		for (const layout of this.componentLayout) {
+		for (const layout of this.sectionLayout) {
 			switch (layout.type) {
 				case PropertyType.U_INT_8:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getUint8(layout.offset),
@@ -111,7 +111,7 @@ class Pool {
 					break;
 
 				case PropertyType.U_INT_16:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getUint16(layout.offset, LITTLE_ENDIAN),
@@ -120,7 +120,7 @@ class Pool {
 					break;
 
 				case PropertyType.U_INT_32:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getUint32(layout.offset, LITTLE_ENDIAN),
@@ -129,7 +129,7 @@ class Pool {
 					break;
 
 				case PropertyType.U_INT_64:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): bigint => poolView.getBigUint64(layout.offset, LITTLE_ENDIAN),
@@ -138,7 +138,7 @@ class Pool {
 					break;
 
 				case PropertyType.INT_8:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getInt8(layout.offset),
@@ -147,7 +147,7 @@ class Pool {
 					break;
 
 				case PropertyType.INT_16:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getInt16(layout.offset, LITTLE_ENDIAN),
@@ -156,7 +156,7 @@ class Pool {
 					break;
 
 				case PropertyType.INT_32:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getInt32(layout.offset, LITTLE_ENDIAN),
@@ -165,7 +165,7 @@ class Pool {
 					break;
 
 				case PropertyType.INT_64:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): bigint => poolView.getBigInt64(layout.offset, LITTLE_ENDIAN),
@@ -174,7 +174,7 @@ class Pool {
 					break;
 
 				case PropertyType.FLOAT_32:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getFloat32(layout.offset, LITTLE_ENDIAN),
@@ -183,7 +183,7 @@ class Pool {
 					break;
 
 				case PropertyType.FLOAT_64:
-					Object.defineProperty(componentRef, layout.name, {
+					Object.defineProperty(sectionRef, layout.name, {
 						configurable: false,
 						enumerable: true,
 						get: (): number => poolView.getFloat64(layout.offset, LITTLE_ENDIAN),
@@ -193,7 +193,7 @@ class Pool {
 			}
 		}
 
-		return componentRef;
+		return sectionRef;
 	}
 
 	private increaseBufferSize = (): void => {
@@ -205,8 +205,8 @@ class Pool {
 	}
 
 	private buffer: ArrayBuffer;
-	private readonly componentSize: number;
-	private readonly componentLayout: ComponentProperty[];
+	private readonly sectionSize: number;
+	private readonly sectionLayout: PoolSectionLayout[];
 	private usedSize: number;
 	private increaseSize: number;
 	private freeSections: number[];

@@ -16,7 +16,10 @@ class Component {
 	public float_32: number = 3.141592653589793238;
 	public float_64: number = 3.14159265358979323846264338327950288;
 
-	public static poolSettings: PoolSettings = { initialCount: 0, increaseCount: POOL_INCREASE_COUNT };
+	public static poolSettings: PoolSettings = {
+		initialCount: 0,
+		increaseCount: POOL_INCREASE_COUNT
+	};
 	public static schema: ComponentSchema = {
 		u_int_8: PropertyType.U_INT_8,
 		u_int_16: PropertyType.U_INT_16,
