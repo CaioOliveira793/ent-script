@@ -1,6 +1,6 @@
 import Registry, {
 	ComponentSchema, ComponentConstructor, ComponentInfo, PoolSettings,
-	PoolInfo, PropertyType, PropertyTypeToSize, MAX_COMPONENTS
+	PoolInfo, PropertyType, PropertyTypeToSize, REGISTRY_MAX_COMPONENTS
 } from '../src/index';
 
 
@@ -17,7 +17,7 @@ describe('Registry construction', () => {
 		}
 
 		const componentsList: ComponentConstructor<Component>[] = [];
-		for (let i = 0; i < MAX_COMPONENTS + 1; i++) {
+		for (let i = 0; i < REGISTRY_MAX_COMPONENTS + 1; i++) {
 			componentsList.push(Component);
 		}
 

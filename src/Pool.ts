@@ -27,6 +27,10 @@ export interface PoolSectionLayout {
 	readonly offset: number;
 }
 
+export const DEFAULT_POOL_INITIAL_COUNT = 100;
+
+export const DEFAULT_POOL_INCREASE_COUNT = 10;
+
 
 class Pool {
 	constructor(schema: PoolSchema, settings?: PoolSettings) {
@@ -44,11 +48,11 @@ class Pool {
 			sectionSize += propertySize;
 		}
 
-		this.buffer = new ArrayBuffer((settings?.initialCount ?? 10) * sectionSize);
+		this.buffer = new ArrayBuffer((settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * sectionSize);
 		this.sectionSize = sectionSize;
 		this.sectionLayout = layout;
 		this.usedSize = 0;
-		this.increaseSize = (settings?.increaseCount ?? 10) * sectionSize;
+		this.increaseSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * sectionSize;
 		this.freeSections = [];
 	}
 

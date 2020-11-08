@@ -24,7 +24,7 @@ interface CompoenentLookupTable {
 	[key: string]: { mask: number; index: number; }
 }
 
-export const MAX_COMPONENTS = 32;
+export const REGISTRY_MAX_COMPONENTS = 32;
 
 
 class Registry {
@@ -32,7 +32,7 @@ class Registry {
 		const totalComponents = componentConstructors.length;
 
 		if (totalComponents <= 0) throw new Error('no component was supplied in the Registry constructor');
-		if (totalComponents > MAX_COMPONENTS) throw new Error('max number of 32 components was exceeded');
+		if (totalComponents > REGISTRY_MAX_COMPONENTS) throw new Error('max number of 32 components was exceeded');
 
 		this.pools = Array(totalComponents);
 		this.compoenentLookupTable = {};
