@@ -48,7 +48,8 @@ export class Pool {
 			sectionSize += propertySize;
 		}
 
-		this.buffer = new ArrayBuffer((settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * sectionSize);
+		this.initialBufferSize = (settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * sectionSize;
+		this.buffer = new ArrayBuffer(this.initialBufferSize);
 		this.sectionSize = sectionSize;
 		this.sectionLayout = layout;
 		this.usedSize = 0;
@@ -84,6 +85,14 @@ export class Pool {
 
 	public deleteSection = (poolOffset: number): void => {
 		this.freeSections.push(poolOffset);
+	}
+
+	public deleteAllSections = (): number => {
+		const deletedSections = this.usedSize / this.sectionSize - this.freeSections.length;
+		this.buffer = new ArrayBuffer(this.initialBufferSize);
+		this.freeSections = [];
+		this.usedSize = 0;
+		return deletedSections;
 	}
 
 
@@ -209,10 +218,11 @@ export class Pool {
 	}
 
 	private buffer: ArrayBuffer;
+	private readonly initialBufferSize: number;
 	private readonly sectionSize: number;
 	private readonly sectionLayout: PoolSectionLayout[];
 	private usedSize: number;
-	private increaseSize: number;
+	private readonly increaseSize: number;
 	private freeSections: number[];
 }
 
