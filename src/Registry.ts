@@ -90,7 +90,7 @@ export class Registry {
 		const componentData = new component(...args);
 		const componentIndex = this.compoenentLookupTable[component.name].index;
 
-		const existentPoolOffset = this.entities[entity]?.componentPoolOffset[componentIndex];
+		const existentPoolOffset = this.entities[entity].componentPoolOffset[componentIndex];
 		if (existentPoolOffset !== undefined) {
 			const componentReference = this.pools[componentIndex].getSectionReference<T>(existentPoolOffset);
 			for (const prop in componentReference)
@@ -140,6 +140,17 @@ export class Registry {
 		return true;
 	}
 
+	public removeAllComponents = (): number => {
+		for (const entityData of this.entities) {
+			entityData.componentMask = 0;
+			entityData.componentPoolOffset = [];
+		}
+
+		let deletedComponents = 0;
+		for (const pool of this.pools) deletedComponents += pool.deleteAllSections();
+		return deletedComponents;
+	}
+
 
 	// utils ///////////////////////////////////////////////////
 
@@ -161,7 +172,7 @@ export class Registry {
 
 
 	private readonly pools: Pool[];
-	private readonly entities: EntityData[];
+	private entities: EntityData[];
 
 	private readonly compoenentLookupTable: CompoenentLookupTable;
 
