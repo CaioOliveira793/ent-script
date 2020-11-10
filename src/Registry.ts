@@ -106,6 +106,11 @@ export class Registry {
 		return sectionReference;
 	}
 
+	public hasComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
+		return (this.entities[entity].componentMask & this.compoenentLookupTable[component.name].mask)
+			=== this.compoenentLookupTable[component.name].mask;
+	}
+
 	public getComponent = <T>(entity: number, component: ComponentConstructor<T>): T => {
 		if (!this.entities[entity])
 			throw new Error('can not retrieve a component of a non-crated entity');

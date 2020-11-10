@@ -185,6 +185,21 @@ describe('Component return', () => {
 		expect(registry.getComponent<Component>(entity, Component)).toStrictEqual(compRef);
 	});
 
+	it('entity have a inserted component', () => {
+		const registry = new Registry([Component]);
+		const entity = registry.createEntity();
+		registry.insertComponent<Component>(entity, Component);
+
+		expect(registry.hasComponent<Component>(entity, Component)).toBe(true);
+	});
+
+	it('entity not have a component', () => {
+		const registry = new Registry([Component]);
+		const entity = registry.createEntity();
+
+		expect(registry.hasComponent<Component>(entity, Component)).toBe(false);
+	});
+
 	it('maps properties to return in component reference', () => {
 		const registry = new Registry([FullPropertyComponent]);
 		const entity = registry.createEntity();
