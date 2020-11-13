@@ -43,4 +43,17 @@ describe('Entity', () => {
 		expect(registry.isExistentEntity(entity)).toBe(true);
 	});
 
+	it('retrieve component count of a entity', () => {
+		const registry = new Registry([Component]);
+		const entity1 = registry.createEntity();
+		registry.insertComponent(entity1, Component);
+
+		const entity2 = registry.createEntity();
+		registry.insertComponent(entity2, Component);
+		registry.removeComponent(entity2, Component);
+
+		expect(registry.getEntityComponentCount(entity1)).toBe(1);
+		expect(registry.getEntityComponentCount(entity2)).toBe(0);
+	});
+
 });

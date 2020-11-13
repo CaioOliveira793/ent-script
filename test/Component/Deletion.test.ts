@@ -68,11 +68,11 @@ describe('Component deletion', () => {
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
 	});
 
-	it('throw an error when delete a component in a non-existent entity', () => {
+	it('throw an error when remove a component in a non-existent entity', () => {
 		const registry = new Registry([Component]);
 
 		expect(() => registry.removeComponent(3, Component))
-			.toThrowError('can not delete a component of a non-crated entity');
+			.toThrowError('can not remove a component of a non-crated entity');
 	});
 
 
