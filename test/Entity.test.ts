@@ -56,4 +56,11 @@ describe('Entity', () => {
 		expect(registry.getEntityComponentCount(entity2)).toBe(0);
 	});
 
+	it('throw an error when retrieve component count of a non-created entity', () => {
+		const registry = new Registry([Component]);
+		
+		expect(() => registry.getEntityComponentCount(3))
+			.toThrowError('can not retrieve component count of a non-crated entity');
+	});
+
 });
