@@ -40,11 +40,9 @@ export class Registry {
 		let index = 0;
 		let mask = 1;
 		for (const component of componentConstructors) {
-			// set the component mask:
 			mask <<= index;
 			this.compoenentLookupTable[component.name] = { mask, index };
 
-			// create pools of components:
 			this.pools[index] = new Pool(component.schema, component.poolSettings);
 			index++;
 		}
@@ -68,7 +66,6 @@ export class Registry {
 
 		const componentsInEntity = indexInMask(this.entities[entity].componentMask);
 		for (const componentIndex of componentsInEntity) {
-			// const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
 			this.pools[componentIndex].deleteSection(entity);
 		}
 
@@ -185,7 +182,6 @@ export class Registry {
 
 	private readonly pools: Pool[];
 	private entities: EntityData[];
-
 	private readonly compoenentLookupTable: CompoenentLookupTable;
 
 	private entityIdIncrement: number;
