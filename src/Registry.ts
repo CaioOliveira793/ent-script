@@ -17,7 +17,6 @@ export interface ComponentInfo {
 
 interface EntityData {
 	componentMask: number;
-	componentPoolOffset: number[];
 }
 
 interface CompoenentLookupTable {
@@ -57,8 +56,7 @@ export class Registry {
 
 	public createEntity = (): number => {
 		this.entities[this.entityIdIncrement] = {
-			componentMask: 0,
-			componentPoolOffset: []
+			componentMask: 0
 		};
 		return this.entityIdIncrement++;
 	}
@@ -68,8 +66,8 @@ export class Registry {
 
 		const componentsInEntity = indexInMask(this.entities[entity].componentMask);
 		for (const componentIndex of componentsInEntity) {
-			const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
-			this.pools[componentIndex].deleteSection(poolOffset);
+			// const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
+			this.pools[componentIndex].deleteSection(entity);
 		}
 
 		this.entities[entity] = undefined as unknown as EntityData;
@@ -88,63 +86,62 @@ export class Registry {
 			throw new Error('can not insert a component in a non-crated entity');
 
 		const componentData = new component(...args);
-		const componentIndex = this.compoenentLookupTable[component.name].index;
+		const componentId = this.compoenentLookupTable[component.name];
 
-		const existentPoolOffset = this.entities[entity].componentPoolOffset[componentIndex];
-		if (existentPoolOffset !== undefined) {
-			const componentReference = this.pools[componentIndex].getSectionReference<T>(existentPoolOffset);
+		if ((this.entities[entity].componentMask & componentId.mask) === componentId.mask) {
+			const componentReference = this.pools[componentId.index].getSectionReference<T>(entity);
 			for (const prop in componentReference)
 				componentReference[prop] = componentData[prop];
 			return componentReference;
 		}
 
-		const { sectionReference, offset } = this.pools[componentIndex].insertSection<T>(componentData);
-
 		this.entities[entity].componentMask |= this.compoenentLookupTable[component.name].mask;
-		this.entities[entity].componentPoolOffset[componentIndex] = offset;
-
-		return sectionReference;
+		return this.pools[componentId.index].insertSection<T>(entity, componentData);
 	}
 
 	public hasComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
-		return (this.entities[entity].componentMask & this.compoenentLookupTable[component.name].mask)
-			=== this.compoenentLookupTable[component.name].mask;
+		const componentMask = this.compoenentLookupTable[component.name].mask;
+		return (this.entities[entity].componentMask & componentMask) === componentMask;
 	}
 
 	public getComponent = <T>(entity: number, component: ComponentConstructor<T>): T => {
 		if (!this.entities[entity])
 			throw new Error('can not retrieve a component of a non-crated entity');
 
-		const componentIndex = this.compoenentLookupTable[component.name].index;
-		const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
+		const componentId = this.compoenentLookupTable[component.name];
 
-		if (poolOffset === undefined)
+		if ((this.entities[entity].componentMask & componentId.mask) !== componentId.mask)
 			throw new Error(`entity does not have component ${component.name} to retrieve`);
 
-		return this.pools[componentIndex].getSectionReference(poolOffset);
+		return this.pools[componentId.index].getSectionReference(entity);
 	}
 
 	public removeComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
 		if (!this.entities[entity])
 			throw new Error('can not delete a component of a non-crated entity');
 
-		const componentIndex = this.compoenentLookupTable[component.name].index;
-		const poolOffset = this.entities[entity].componentPoolOffset[componentIndex];
+		const componentId = this.compoenentLookupTable[component.name];
 
-		if (poolOffset === undefined) return false;
+		if ((this.entities[entity].componentMask & componentId.mask) !== componentId.mask) return false;
 
-		this.entities[entity].componentMask ^= this.compoenentLookupTable[component.name].mask;
-		this.entities[entity].componentPoolOffset[componentIndex] = undefined as unknown as number;
-
-		this.pools[componentIndex].deleteSection(poolOffset);
+		this.entities[entity].componentMask ^= componentId.mask;
+		this.pools[componentId.index].deleteSection(entity);
 		return true;
 	}
 
-	public removeAllComponents = (): number => {
-		for (const entityData of this.entities) {
+	public clearComponents = <T>(component: ComponentConstructor<T>): number => {
+		const componentId = this.compoenentLookupTable[component.name];
+		const entitiesIterable = this.pools[componentId.index].getKeysIterator();
+
+		for (const entity of entitiesIterable)
+			this.entities[entity].componentMask ^= componentId.mask;
+
+		return this.pools[componentId.index].deleteAllSections();
+	}
+
+	public clearAllComponents = (): number => {
+		for (const entityData of this.entities)
 			entityData.componentMask = 0;
-			entityData.componentPoolOffset = [];
-		}
 
 		let deletedComponents = 0;
 		for (const pool of this.pools) deletedComponents += pool.deleteAllSections();

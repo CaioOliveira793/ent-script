@@ -76,6 +76,24 @@ describe('Component deletion', () => {
 	});
 
 
+	it('clear one type of compoenent', () => {
+		const registry = new Registry([Component, FullPropertyComponent]);
+		const entity1 = registry.createEntity();
+		registry.insertComponent<Component>(entity1, Component);
+		registry.insertComponent<FullPropertyComponent>(entity1, FullPropertyComponent);
+
+		const entity2 = registry.createEntity();
+		registry.insertComponent<Component>(entity2, Component);
+		registry.insertComponent<FullPropertyComponent>(entity2, FullPropertyComponent);
+
+		registry.clearComponents(FullPropertyComponent);
+
+		expect(registry.getPoolInfo(FullPropertyComponent).usedSize).toBe(0);
+		expect(registry.hasComponent(entity1, Component)).toBe(true);
+		expect(registry.hasComponent(entity2, Component)).toBe(true);
+	});
+
+
 	it('clear all components', () => {
 		const registry = new Registry([Component, FullPropertyComponent]);
 		const entity1 = registry.createEntity();
@@ -86,7 +104,7 @@ describe('Component deletion', () => {
 		registry.insertComponent<Component>(entity2, Component);
 		registry.insertComponent<FullPropertyComponent>(entity2, FullPropertyComponent);
 
-		registry.removeAllComponents();
+		registry.clearAllComponents();
 
 		expect(registry.getPoolInfo(Component).usedSize).toBe(0);
 		expect(registry.getPoolInfo(FullPropertyComponent).usedSize).toBe(0);
@@ -101,7 +119,7 @@ describe('Component deletion', () => {
 		const entity2 = registry.createEntity();
 		registry.insertComponent<FullPropertyComponent>(entity2, FullPropertyComponent);
 
-		expect(registry.removeAllComponents()).toBe(3);
+		expect(registry.clearAllComponents()).toBe(3);
 	});
 
 	it('entities not have deleted components', () => {
@@ -114,7 +132,7 @@ describe('Component deletion', () => {
 		registry.insertComponent<FullPropertyComponent>(entity2, FullPropertyComponent);
 		registry.insertComponent<FullPropertyComponent>(entity2, FullPropertyComponent);
 
-		registry.removeAllComponents();
+		registry.clearAllComponents();
 
 		expect(registry.hasComponent<Component>(entity1, Component)).toBe(false);
 		expect(registry.hasComponent<FullPropertyComponent>(entity1, FullPropertyComponent)).toBe(false);
