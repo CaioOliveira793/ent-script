@@ -55,9 +55,10 @@ export class Pool {
 		this.usedSize = 0;
 		this.increaseSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * sectionSize;
 		this.freeSections = [];
+		this.keysToPoolOffset = new Map();
 	}
 
-	public insertSection = <T>(section: T): { sectionReference: T, offset: number } => {
+	public insertSection = <T>(key: number, sectionValue: T): T => {
 		let offset: number;
 
 		if (this.freeSections.length >= 1) {
@@ -67,23 +68,32 @@ export class Pool {
 			this.usedSize += this.sectionSize;
 		}
 
-		if (this.buffer.byteLength === offset) {
-			this.increaseBufferSize();
-		}
+		this.keysToPoolOffset.set(key, offset);
+		if (this.buffer.byteLength === offset) this.increaseBufferSize();
 
 		const poolView = new DataView(this.buffer, offset, this.sectionSize);
 		const sectionReference = this.createSectionReference<T>(poolView);
-		for (const prop in sectionReference) sectionReference[prop] = section[prop];
+		for (const prop in sectionReference) sectionReference[prop] = sectionValue[prop];
 
-		return { sectionReference, offset };
+		return sectionReference;
 	}
 
-	public getSectionReference = <T>(poolOffset: number): T => {
+	public getKeysIterator = (): IterableIterator<number> => {
+		return this.keysToPoolOffset.keys();
+	}
+
+	public getSectionReference = <T>(key: number): T => {
+		// TODO: if key does not exist, return false or an error
+		const poolOffset = this.keysToPoolOffset.get(key);
+
 		const poolView = new DataView(this.buffer, poolOffset, this.sectionSize);
 		return this.createSectionReference<T>(poolView);
 	}
 
-	public deleteSection = (poolOffset: number): void => {
+	public deleteSection = (key: number): void => {
+		// TODO: if key does not exist, return false or an error
+		const poolOffset = this.keysToPoolOffset.get(key) as number;
+
 		this.freeSections.push(poolOffset);
 	}
 
@@ -224,6 +234,7 @@ export class Pool {
 	private usedSize: number;
 	private readonly increaseSize: number;
 	private freeSections: number[];
+	private readonly keysToPoolOffset: Map<number, number>;
 }
 
 export default Pool;
