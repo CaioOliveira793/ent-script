@@ -17,6 +17,7 @@ export interface ComponentInfo {
 
 interface EntityData {
 	componentMask: number;
+	componentCount: number;
 }
 
 interface CompoenentLookupTable {
@@ -56,7 +57,8 @@ export class Registry {
 
 	public createEntity = (): number => {
 		this.entities[this.entityIdIncrement] = {
-			componentMask: 0
+			componentMask: 0,
+			componentCount: 0
 		};
 		return this.entityIdIncrement++;
 	}
@@ -78,6 +80,13 @@ export class Registry {
 		return !!this.entities[entity];
 	}
 
+	public getEntityComponentCount = (entity: number): number => {
+		if (!this.entities[entity])
+			throw new Error('can not retrieve component count of a non-crated entity');
+		
+		return this.entities[entity].componentCount;
+	}
+
 
 	// component ///////////////////////////////////////////////
 
@@ -96,6 +105,7 @@ export class Registry {
 		}
 
 		this.entities[entity].componentMask |= this.compoenentLookupTable[component.name].mask;
+		this.entities[entity].componentCount++;
 		return this.pools[componentId.index].insertSection<T>(entity, componentData);
 	}
 
@@ -118,13 +128,14 @@ export class Registry {
 
 	public removeComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
 		if (!this.entities[entity])
-			throw new Error('can not delete a component of a non-crated entity');
+			throw new Error('can not remove a component of a non-crated entity');
 
 		const componentId = this.compoenentLookupTable[component.name];
 
 		if ((this.entities[entity].componentMask & componentId.mask) !== componentId.mask) return false;
 
 		this.entities[entity].componentMask ^= componentId.mask;
+		this.entities[entity].componentCount--;
 		this.pools[componentId.index].deleteSection(entity);
 		return true;
 	}
@@ -133,15 +144,19 @@ export class Registry {
 		const componentId = this.compoenentLookupTable[component.name];
 		const entitiesIterable = this.pools[componentId.index].getKeysIterator();
 
-		for (const entity of entitiesIterable)
+		for (const entity of entitiesIterable) {
 			this.entities[entity].componentMask ^= componentId.mask;
+			this.entities[entity].componentCount--;
+		}
 
 		return this.pools[componentId.index].deleteAllSections();
 	}
 
 	public clearAllComponents = (): number => {
-		for (const entityData of this.entities)
+		for (const entityData of this.entities) {
 			entityData.componentMask = 0;
+			entityData.componentCount--;
+		}
 
 		let deletedComponents = 0;
 		for (const pool of this.pools) deletedComponents += pool.deleteAllSections();
