@@ -65,9 +65,9 @@ export class Pool {
 			offset = this.freeSections.pop() as number;
 		} else {
 			offset = this.usedSize;
-			this.usedSize += this.sectionSize;
 		}
 
+		this.usedSize += this.sectionSize;
 		this.keysToPoolOffset.set(key, offset);
 		if (this.buffer.byteLength === offset) this.increaseBufferSize();
 
@@ -76,6 +76,10 @@ export class Pool {
 		for (const prop in sectionReference) sectionReference[prop] = sectionValue[prop];
 
 		return sectionReference;
+	}
+
+	public getSectionCount = (): number => {
+		return this.usedSize / this.sectionSize;
 	}
 
 	public getKeysIterator = (): IterableIterator<number> => {
@@ -93,12 +97,13 @@ export class Pool {
 	public deleteSection = (key: number): void => {
 		// TODO: if key does not exist, return false or an error
 		const poolOffset = this.keysToPoolOffset.get(key) as number;
-
+		
 		this.freeSections.push(poolOffset);
+		this.usedSize -= this.sectionSize;
 	}
 
 	public deleteAllSections = (): number => {
-		const deletedSections = this.usedSize / this.sectionSize - this.freeSections.length;
+		const deletedSections = this.usedSize / this.sectionSize;
 		this.buffer = new ArrayBuffer(this.initialBufferSize);
 		this.freeSections = [];
 		this.usedSize = 0;

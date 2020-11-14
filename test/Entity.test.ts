@@ -64,3 +64,58 @@ describe('Entity', () => {
 	});
 
 });
+
+
+describe('Entity queries', () => {
+	class Component1 {
+		static schema: ComponentSchema = { property: PropertyType.BYTE };
+	}
+	class Component2 {
+		static schema: ComponentSchema = { property: PropertyType.BYTE };
+	}
+
+	it('retrieve a iterator of entities that has two components', () => {
+		const registry = new Registry([Component1, Component2]);
+		registry.createEntity();
+		registry.createEntity();
+
+		for (let i = 0; i < 10; i++) {
+			const ent = registry.createEntity();
+			registry.insertComponent(ent, Component1);
+			registry.insertComponent(ent, Component2);
+		}
+
+		for (let i = 0; i < 13; i++) {
+			const ent = registry.createEntity();
+			registry.insertComponent(ent, Component1);
+		}
+
+		for (let i = 0; i < 5; i++) {
+			const ent = registry.createEntity();
+			registry.insertComponent(ent, Component2);
+		}
+
+		const entityItereator = registry.getEntitiesIteratorWith([Component1, Component2]);
+
+		const entityList = [];
+		for (const entity of entityItereator) {
+			entityList.push(entity);
+		}
+
+		expect(entityList).toStrictEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+	});
+
+	it('throw an error when retrieve a iterator of entities that has no components', () => {
+		const registry = new Registry([Component1, Component2]);
+
+		for (let i = 0; i < 5; i++) {
+			const ent = registry.createEntity();
+			registry.insertComponent(ent, Component1);
+			registry.insertComponent(ent, Component2);
+		}
+
+		expect(() => registry.getEntitiesIteratorWith([]).next())
+			.toThrow('no component was supplied to retrive the entity iterator');
+	});
+
+});
