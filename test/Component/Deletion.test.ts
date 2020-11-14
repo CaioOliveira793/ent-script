@@ -56,7 +56,7 @@ describe('Component deletion', () => {
 		const entity = registry.createEntity();
 		registry.insertComponent<Component>(entity, Component);
 
-		expect(registry.removeComponent(entity, Component)).toBe(true);
+		expect(registry.removeComponents(entity, [Component])).toStrictEqual([true]);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
 	});
 
@@ -64,14 +64,14 @@ describe('Component deletion', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 
-		expect(registry.removeComponent(entity, Component)).toBe(false);
+		expect(registry.removeComponents(entity, [Component])).toStrictEqual([false]);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
 	});
 
 	it('throw an error when remove a component in a non-existent entity', () => {
 		const registry = new Registry([Component]);
 
-		expect(() => registry.removeComponent(3, Component))
+		expect(() => registry.removeComponents(3, [Component]))
 			.toThrowError('can not remove a component of a non-crated entity');
 	});
 
@@ -86,11 +86,11 @@ describe('Component deletion', () => {
 		registry.insertComponent<Component>(entity2, Component);
 		registry.insertComponent<FullPropertyComponent>(entity2, FullPropertyComponent);
 
-		registry.clearComponents(FullPropertyComponent);
+		registry.clearComponents([FullPropertyComponent]);
 
 		expect(registry.getPoolInfo(FullPropertyComponent).usedSize).toBe(0);
-		expect(registry.hasComponent(entity1, Component)).toBe(true);
-		expect(registry.hasComponent(entity2, Component)).toBe(true);
+		expect(registry.hasComponents(entity1, [Component])).toStrictEqual([true]);
+		expect(registry.hasComponents(entity2, [Component])).toStrictEqual([true]);
 	});
 
 
@@ -134,10 +134,8 @@ describe('Component deletion', () => {
 
 		registry.clearAllComponents();
 
-		expect(registry.hasComponent<Component>(entity1, Component)).toBe(false);
-		expect(registry.hasComponent<FullPropertyComponent>(entity1, FullPropertyComponent)).toBe(false);
-		expect(registry.hasComponent<Component>(entity1, Component)).toBe(false);
-		expect(registry.hasComponent<FullPropertyComponent>(entity1, FullPropertyComponent)).toBe(false);
+		expect(registry.hasComponents(entity1, [Component, FullPropertyComponent])).toStrictEqual([false, false]);
+		expect(registry.hasComponents(entity2, [Component, FullPropertyComponent])).toStrictEqual([false, false]);
 	});
 
 });
