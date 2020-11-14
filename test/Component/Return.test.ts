@@ -54,7 +54,7 @@ describe('Component return', () => {
 	it('throw an error when retrieve a component of a non-crated entity', () => {
 		const registry = new Registry([Component]);
 
-		expect(() => registry.getComponent<Component>(3, Component))
+		expect(() => registry.getComponents<[Component]>(3, [Component]))
 			.toThrowError('can not retrieve a component of a non-crated entity');
 	});
 
@@ -62,7 +62,7 @@ describe('Component return', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 
-		expect(() => registry.getComponent<Component>(entity, Component))
+		expect(() => registry.getComponents<[Component]>(entity, [Component]))
 			.toThrowError(`entity does not have component ${Component.name} to retrieve`);
 	});
 
@@ -75,7 +75,7 @@ describe('Component return', () => {
 		compRef.prop_2 = 1.618;
 		compRef.prop1 = 250;
 
-		expect(registry.getComponent<Component>(entity, Component)).toStrictEqual(compRef);
+		expect(registry.getComponents<[Component]>(entity, [Component])[0]).toStrictEqual(compRef);
 	});
 
 	it('entity have a inserted component', () => {
@@ -83,14 +83,14 @@ describe('Component return', () => {
 		const entity = registry.createEntity();
 		registry.insertComponent<Component>(entity, Component);
 
-		expect(registry.hasComponent<Component>(entity, Component)).toBe(true);
+		expect(registry.hasComponents(entity, [Component])).toStrictEqual([true]);
 	});
 
 	it('entity not have a component', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 
-		expect(registry.hasComponent<Component>(entity, Component)).toBe(false);
+		expect(registry.hasComponents(entity, [Component])).toStrictEqual([false]);
 	});
 
 	it('maps properties to return in component reference', () => {
@@ -98,18 +98,18 @@ describe('Component return', () => {
 		const entity = registry.createEntity();
 		registry.insertComponent<FullPropertyComponent>(entity, FullPropertyComponent);
 
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_8).toBe(250);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_16).toBe(65000);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_32).toBe(4200000000);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).u_int_64).toBe(BigInt(8446744073709551615));
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].u_int_8).toBe(250);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].u_int_16).toBe(65000);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].u_int_32).toBe(4200000000);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].u_int_64).toBe(BigInt(8446744073709551615));
 
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_8).toBe(-120);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_16).toBe(-32000);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_32).toBe(-2100000000);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).int_64).toBe(BigInt(-844674407370955));
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].int_8).toBe(-120);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].int_16).toBe(-32000);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].int_32).toBe(-2100000000);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].int_64).toBe(BigInt(-844674407370955));
 
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).float_32).toBeGreaterThanOrEqual(3.141592653589793238);
-		expect(registry.getComponent<FullPropertyComponent>(entity, FullPropertyComponent).float_64).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].float_32).toBeGreaterThanOrEqual(3.141592653589793238);
+		expect(registry.getComponents<[FullPropertyComponent]>(entity, [FullPropertyComponent])[0].float_64).toBeGreaterThanOrEqual(3.14159265358979323846264338327950288);
 	});
 
 });

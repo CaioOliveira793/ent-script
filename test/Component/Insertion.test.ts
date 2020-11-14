@@ -36,7 +36,7 @@ describe('Component insertion', () => {
 		componentRef.prop_2 = 5.23234232;
 		componentRef.prop1 = 120;
 
-		expect(registry.getComponent<Component>(entity, Component)).toStrictEqual({
+		expect(registry.getComponents<[Component]>(entity, [Component])[0]).toStrictEqual({
 			prop1: 120,
 			prop_2: 5.23234232,
 			Prop3: -4523
@@ -111,7 +111,7 @@ describe('Component insertion', () => {
 		registry.insertComponent<Component>(entity2, Component);
 		registry.insertComponent<Component>(entity3, Component);
 
-		registry.removeComponent<Component>(entity2, Component);
+		registry.removeComponents(entity2, [Component]);
 		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
 
 		registry.insertComponent<Component>(entity4, Component);

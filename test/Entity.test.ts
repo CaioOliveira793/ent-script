@@ -50,7 +50,7 @@ describe('Entity', () => {
 
 		const entity2 = registry.createEntity();
 		registry.insertComponent(entity2, Component);
-		registry.removeComponent(entity2, Component);
+		registry.removeComponents(entity2, [Component]);
 
 		expect(registry.getEntityComponentCount(entity1)).toBe(1);
 		expect(registry.getEntityComponentCount(entity2)).toBe(0);

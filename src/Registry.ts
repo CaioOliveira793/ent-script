@@ -128,47 +128,63 @@ export class Registry {
 		return this.pools[componentId.index].insertSection<T>(entity, componentData);
 	}
 
-	public hasComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
-		const componentMask = this.compoenentLookupTable[component.name].mask;
-		return (this.entities[entity].componentMask & componentMask) === componentMask;
+	public hasComponents = (entity: number, components: ComponentConstructor<unknown>[]): boolean[] => {
+		const componentMasks = components.map(comp => this.compoenentLookupTable[comp.name].mask);
+		const hasComponentList: boolean[] = [];
+		for (const compMask of componentMasks)
+			hasComponentList.push((this.entities[entity].componentMask & compMask) === compMask);
+		return hasComponentList;
 	}
 
-	public getComponent = <T>(entity: number, component: ComponentConstructor<T>): T => {
+	public getComponents = <T extends unknown[]>(entity: number, components: ComponentConstructor<unknown>[]): T => {
 		if (!this.entities[entity])
 			throw new Error('can not retrieve a component of a non-crated entity');
 
-		const componentId = this.compoenentLookupTable[component.name];
+		const componentsId = components.map(comp => this.compoenentLookupTable[comp.name]);
+		const componentReferenceList = [] as unknown as T;
 
-		if ((this.entities[entity].componentMask & componentId.mask) !== componentId.mask)
-			throw new Error(`entity does not have component ${component.name} to retrieve`);
-
-		return this.pools[componentId.index].getSectionReference(entity);
+		for (const compId of componentsId) {
+			if ((this.entities[entity].componentMask & compId.mask) !== compId.mask)
+				throw new Error(`entity does not have component ${components[componentReferenceList.length].name} to retrieve`);
+			else
+				componentReferenceList.push(this.pools[compId.index].getSectionReference(entity));
+		}
+		return componentReferenceList;
 	}
 
-	public removeComponent = <T>(entity: number, component: ComponentConstructor<T>): boolean => {
+	public removeComponents = (entity: number, components: ComponentConstructor<unknown>[]): boolean[] => {
 		if (!this.entities[entity])
 			throw new Error('can not remove a component of a non-crated entity');
 
-		const componentId = this.compoenentLookupTable[component.name];
+		const componentsId = components.map(comp => this.compoenentLookupTable[comp.name]);
+		const wasRemovedList: boolean[] = [];
 
-		if ((this.entities[entity].componentMask & componentId.mask) !== componentId.mask) return false;
-
-		this.entities[entity].componentMask ^= componentId.mask;
-		this.entities[entity].componentCount--;
-		this.pools[componentId.index].deleteSection(entity);
-		return true;
+		for (const compId of componentsId) {
+			if ((this.entities[entity].componentMask & compId.mask) !== compId.mask) {
+				wasRemovedList.push(false);
+			} else {
+				this.entities[entity].componentMask ^= compId.mask;
+				this.entities[entity].componentCount--;
+				this.pools[compId.index].deleteSection(entity);
+				wasRemovedList.push(true);
+			}
+		}
+		return wasRemovedList;
 	}
 
-	public clearComponents = <T>(component: ComponentConstructor<T>): number => {
-		const componentId = this.compoenentLookupTable[component.name];
-		const entitiesIterable = this.pools[componentId.index].getKeysIterator();
+	public clearComponents = (components: ComponentConstructor<unknown>[]): number[] => {
+		const componentsId = components.map(comp => this.compoenentLookupTable[comp.name]);
+		const removedCount: number[] = [];
 
-		for (const entity of entitiesIterable) {
-			this.entities[entity].componentMask ^= componentId.mask;
-			this.entities[entity].componentCount--;
+		for (const compId of componentsId) {
+			const entitiesIterable = this.pools[compId.index].getKeysIterator();
+			for (const entity of entitiesIterable) {
+				this.entities[entity].componentMask ^= compId.mask;
+				this.entities[entity].componentCount--;
+			}
+			removedCount.push(this.pools[compId.index].deleteAllSections());
 		}
-
-		return this.pools[componentId.index].deleteAllSections();
+		return removedCount;
 	}
 
 	public clearAllComponents = (): number => {
