@@ -84,6 +84,28 @@ export class Registry {
 		return this.entities[entity].componentCount;
 	}
 
+	public* getEntitiesIteratorWith(components: ComponentConstructor<unknown>[]): Generator<number, void, unknown> {
+		if (components.length <= 0)
+			throw new Error('no component was supplied to retrive the entity iterator');
+
+		const poolIndexes = components
+			.map(constructors => this.compoenentLookupTable[constructors.name].index);
+
+		let smallerPoolIndex = poolIndexes[0];
+		let queryMask = 0;
+		for (const index of poolIndexes) {
+			queryMask |= 1 << index;
+			smallerPoolIndex = (this.pools[smallerPoolIndex].getSectionCount()
+				<= this.pools[index].getSectionCount()) ? smallerPoolIndex : index;
+		}
+
+		const entitiesIterator = this.pools[smallerPoolIndex].getKeysIterator();
+		for (const entity of entitiesIterator) {
+			if ((this.entities[entity].componentMask & queryMask) === queryMask)
+				yield entity;
+		}
+	}
+
 
 	// component ///////////////////////////////////////////////
 
