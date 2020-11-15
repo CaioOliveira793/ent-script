@@ -40,11 +40,9 @@ export class Registry {
 		let index = 0;
 		let mask = 1;
 		for (const component of componentConstructors) {
-			mask <<= index;
+			mask = 1 << index;
 			this.compoenentLookupTable[component.name] = { mask, index };
-
-			this.pools[index] = new Pool(component.schema, component.poolSettings);
-			index++;
+			this.pools[index++] = new Pool(component.schema, component.poolSettings);
 		}
 
 		this.entities = [];
@@ -80,11 +78,11 @@ export class Registry {
 	public getEntityComponentCount = (entity: number): number => {
 		if (!this.entities[entity])
 			throw new Error('can not retrieve component count of a non-crated entity');
-		
+
 		return this.entities[entity].componentCount;
 	}
 
-	public* getEntitiesIteratorWith(components: ComponentConstructor<unknown>[]): Generator<number, void, unknown> {
+	public * getEntitiesIteratorWith(components: ComponentConstructor<unknown>[]): Generator<number, void, unknown> {
 		if (components.length <= 0)
 			throw new Error('no component was supplied to retrive the entity iterator');
 
@@ -123,7 +121,7 @@ export class Registry {
 			return componentReference;
 		}
 
-		this.entities[entity].componentMask |= this.compoenentLookupTable[component.name].mask;
+		this.entities[entity].componentMask |= componentId.mask;
 		this.entities[entity].componentCount++;
 		return this.pools[componentId.index].insertSection<T>(entity, componentData);
 	}
