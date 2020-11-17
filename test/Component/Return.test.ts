@@ -78,6 +78,32 @@ describe('Component return', () => {
 		expect(registry.getComponents<[Component]>(entity, [Component])[0]).toStrictEqual(compRef);
 	});
 
+	it('use multiple distinct component references', () => {
+		const registry = new Registry([Component]);
+		const entity1 = registry.createEntity();
+		const compRef1 = registry.insertComponent<Component>(entity1, Component);
+		const entity2 = registry.createEntity();
+		const compRef2 = registry.insertComponent<Component>(entity2, Component);
+		const entity3 = registry.createEntity();
+		const compRef3 = registry.insertComponent<Component>(entity3, Component);
+
+		compRef1.Prop3 = -3000;
+		compRef1.prop_2 = 1.618;
+		compRef1.prop1 = 250;
+
+		compRef2.Prop3 = -4000;
+		compRef2.prop_2 = 0.319;
+		compRef2.prop1 = 20;
+
+		compRef3.Prop3 = -600;
+		compRef3.prop_2 = 0.08323;
+		compRef3.prop1 = 55;
+
+		expect(registry.getComponents<[Component]>(entity1, [Component])[0]).toStrictEqual(compRef1);
+		expect(registry.getComponents<[Component]>(entity2, [Component])[0]).toStrictEqual(compRef2);
+		expect(registry.getComponents<[Component]>(entity3, [Component])[0]).toStrictEqual(compRef3);
+	});
+
 	it('entity have a inserted component', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
