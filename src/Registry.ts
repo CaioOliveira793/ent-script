@@ -82,7 +82,7 @@ export class Registry {
 		return this.entities[entity].componentCount;
 	}
 
-	public * getEntitiesIteratorWith(components: ComponentConstructor<unknown>[]): Generator<number, void, unknown> {
+	public *getEntitiesIteratorWith(components: ComponentConstructor<unknown>[]): Generator<number, void, unknown> {
 		if (components.length <= 0)
 			throw new Error('no component was supplied to retrive the entity iterator');
 
@@ -115,7 +115,7 @@ export class Registry {
 		const componentId = this.compoenentLookupTable[component.name];
 
 		if ((this.entities[entity].componentMask & componentId.mask) === componentId.mask) {
-			const componentReference = this.pools[componentId.index].getSectionReference<T>(entity);
+			const componentReference = (this.pools[componentId.index] as Pool<T>).getSectionReference(entity);
 			for (const prop in componentReference)
 				componentReference[prop] = componentData[prop];
 			return componentReference;
@@ -123,7 +123,7 @@ export class Registry {
 
 		this.entities[entity].componentMask |= componentId.mask;
 		this.entities[entity].componentCount++;
-		return this.pools[componentId.index].insertSection<T>(entity, componentData);
+		return (this.pools[componentId.index] as Pool<T>).insertSection(entity, componentData);
 	}
 
 	public hasComponents = (entity: number, components: ComponentConstructor<unknown>[]): boolean[] => {
@@ -216,7 +216,7 @@ export class Registry {
 	}
 
 
-	private readonly pools: Pool[];
+	private readonly pools: Pool<unknown>[];
 	private entities: EntityData[];
 	private readonly compoenentLookupTable: CompoenentLookupTable;
 
