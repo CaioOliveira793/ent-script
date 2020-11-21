@@ -95,10 +95,10 @@ describe('Entity queries', () => {
 			registry.insertComponent(ent, Component2);
 		}
 
-		const entityItereator = registry.getEntitiesIteratorWith([Component1, Component2]);
+		const entityIterator = registry.getEntitiesIteratorWith([Component1, Component2]);
 
 		const entityList = [];
-		for (const entity of entityItereator) {
+		for (const entity of entityIterator) {
 			entityList.push(entity);
 		}
 

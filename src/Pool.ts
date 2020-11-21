@@ -79,7 +79,7 @@ export class Pool<T> {
 		// TODO: if key does not exist, return false or an error
 		const poolOffset = this.keysToPoolOffset.get(key) as number;
 
-		this.freeSectionsOffset.push(poolOffset);
+		if (this.sectionSize !== 0) this.freeSectionsOffset.push(poolOffset);
 		this.usedSize -= this.sectionSize;
 	}
 
