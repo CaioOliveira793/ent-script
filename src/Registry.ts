@@ -1,5 +1,6 @@
 import Pool, { PoolSettings, PoolSchema, PoolInfo, PoolSectionLayout } from './Pool';
 import indexInMask from './generators/IndexInMask';
+import Reference from './Reference';
 
 export type ComponentSchema = PoolSchema;
 
@@ -20,8 +21,13 @@ interface EntityData {
 	componentCount: number;
 }
 
+interface ComponentId {
+	mask: number;
+	index: number;
+}
+
 interface CompoenentLookupTable {
-	[key: string]: { mask: number; index: number; }
+	[key: string]: ComponentId
 }
 
 export const REGISTRY_MAX_COMPONENTS = 32;
@@ -226,6 +232,29 @@ export class Registry {
 	private readonly compoenentLookupTable: CompoenentLookupTable;
 
 	private entityIdIncrement: number;
+
+
+	// static //////////////////////////////////////////////////
+
+	public static *getComponentIteratorFromBuffer<T>(componentBuffer: ArrayBuffer,
+	component: ComponentConstructor<T>): Generator<T, void, unknown> {
+		if (!Registry.refs.has(component.name)) {
+			const ref = new Reference(component.schema, new DataView(componentBuffer));
+			Registry.refs.set(component.name, ref);
+		}
+
+		const ref = Registry.refs.get(component.name) as Reference<T>;
+		const size = ref.getSize();
+		for (let i = 0; i < componentBuffer.byteLength; i += size) {
+			const view = new DataView(componentBuffer, i, size);
+			console.log(view.getUint8(0));
+			ref.updateRef(view);
+			yield ref.get();
+		}
+	}
+
+
+	private static refs: Map<string, Reference<unknown>> = new Map();
 }
 
 export default Registry;

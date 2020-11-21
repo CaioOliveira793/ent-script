@@ -98,7 +98,8 @@ export class Pool<T> {
 	}
 
 	public getPoolData = (): ArrayBuffer => {
-		return this.buffer;
+		this.defragBuffer();
+		return this.buffer.slice(0, this.usedSize);
 	}
 
 	public deleteSection = (key: number): void => {
@@ -235,6 +236,29 @@ export class Pool<T> {
 		(new Uint8Array(newLargerBuffer)).set(oldBufferView);
 
 		this.buffer = newLargerBuffer;
+	}
+
+	private defragBuffer = (): void => {
+		const bufferView = new Uint8Array(this.buffer);
+
+		let lastComponentSection = this.usedSize;
+		let lastIndexFreeSection = this.freeSections.length - 1;
+
+		while (this.freeSections.length !== 0) {
+			if (lastComponentSection === this.freeSections[lastIndexFreeSection]) {
+				this.freeSections[lastIndexFreeSection] = undefined as unknown as number;
+			} else {
+				bufferView.set(
+					bufferView.slice(lastComponentSection, lastComponentSection + this.sectionSize),
+					this.freeSections.shift()
+				);
+			}
+
+			lastComponentSection -= this.sectionSize;
+			lastIndexFreeSection -= 1;
+		}
+
+		this.usedSize = lastComponentSection + this.sectionSize;
 	}
 
 	private buffer: ArrayBuffer;

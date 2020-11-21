@@ -153,4 +153,27 @@ describe('Component Buffer', () => {
 		expect(registry.getPoolInfo(Component).allocatedSize).toBe(componentBuffer.byteLength);
 	});
 
+	it('create a iterable from the component schema and buffer', () => {
+		const registry = new Registry([Component]);
+		for (let i = 0; i < 5; i++) {
+			const ent = registry.createEntity();
+			registry.insertComponent(ent, Component);
+		}
+		registry.removeComponents(2, [Component]);
+
+		const componentBuffer = registry.getComponentBuffer(Component);
+		const componentIterator = Registry.getComponentIteratorFromBuffer<Component>(componentBuffer, Component);
+
+		let componentCount = 0;
+		for (const comp of componentIterator) {
+			expect(comp).toStrictEqual({
+				prop1: 1,
+				prop_2: 3.1415,
+				Prop3: 5000
+			});
+			componentCount++;
+		}
+		expect(componentCount).toBe(4);
+	});
+
 });
