@@ -139,3 +139,18 @@ describe('Component return', () => {
 	});
 
 });
+
+describe('Component Buffer', () => {
+
+	it('return a ArrayBuffer as component data', () => {
+		const registry = new Registry([Component]);
+		for (let i = 0; i < 10; i++) {
+			const ent = registry.createEntity();
+			registry.insertComponent(ent, Component);
+		}
+		const componentBuffer = registry.getComponentBuffer(Component);
+
+		expect(registry.getPoolInfo(Component).allocatedSize).toBe(componentBuffer.byteLength);
+	});
+
+});

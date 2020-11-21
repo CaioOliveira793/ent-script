@@ -115,7 +115,7 @@ export class Registry {
 		const componentId = this.compoenentLookupTable[component.name];
 
 		if ((this.entities[entity].componentMask & componentId.mask) === componentId.mask) {
-			const componentReference = (this.pools[componentId.index] as Pool<T>).getSectionReference(entity);
+			const componentReference = (this.pools[componentId.index] as Pool<T>).getSectionRef(entity);
 			for (const prop in componentReference)
 				componentReference[prop] = componentData[prop];
 			return componentReference;
@@ -145,9 +145,14 @@ export class Registry {
 			if ((this.entities[entity].componentMask & compId.mask) !== compId.mask)
 				throw new Error(`entity does not have component ${components[componentReferenceList.length].name} to retrieve`);
 			else
-				componentReferenceList.push(this.pools[compId.index].getSectionReference(entity));
+				componentReferenceList.push(this.pools[compId.index].getSectionRef(entity));
 		}
 		return componentReferenceList;
+	}
+
+	public getComponentBuffer = (component: ComponentConstructor<unknown>): ArrayBuffer => {
+		const componentIndex = this.compoenentLookupTable[component.name].index;
+		return this.pools[componentIndex].getPoolData();
 	}
 
 	public removeComponents = (entity: number, components: ComponentConstructor<unknown>[]): boolean[] => {
