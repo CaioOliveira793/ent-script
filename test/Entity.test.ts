@@ -33,7 +33,7 @@ describe('Entity', () => {
 		registry.insertComponent<Component>(entity, Component);
 
 		expect(registry.destroyEntity(entity)).toBe(true);
-		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
+		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(1);
 	});
 
 	it('verify if a entity exists', () => {
@@ -58,7 +58,7 @@ describe('Entity', () => {
 
 	it('throw an error when retrieve component count of a non-created entity', () => {
 		const registry = new Registry([Component]);
-		
+
 		expect(() => registry.getEntityComponentCount(3))
 			.toThrowError('can not retrieve component count of a non-crated entity');
 	});

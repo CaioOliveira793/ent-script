@@ -1,6 +1,6 @@
 import Pool, { PoolSettings, PoolSchema, PoolInfo, PoolSectionLayout } from './Pool';
-import indexInMask from './generators/IndexInMask';
 import Reference from './Reference';
+import indexInMask from './generators/IndexInMask';
 
 export type ComponentSchema = PoolSchema;
 
@@ -26,10 +26,6 @@ interface ComponentId {
 	index: number;
 }
 
-interface CompoenentLookupTable {
-	[key: string]: ComponentId
-}
-
 export const REGISTRY_MAX_COMPONENTS = 32;
 
 
@@ -40,14 +36,15 @@ export class Registry {
 		if (totalComponents <= 0) throw new Error('no component was supplied in the Registry constructor');
 		if (totalComponents > REGISTRY_MAX_COMPONENTS) throw new Error('max number of 32 components was exceeded');
 
-		this.pools = Array(totalComponents);
-		this.compoenentLookupTable = {};
+		this.pools = [];
+		this.pools.length = totalComponents;
+		this.keyToCompoenentId = new Map;
 
 		let index = 0;
 		let mask = 1;
 		for (const component of componentConstructors) {
 			mask = 1 << index;
-			this.compoenentLookupTable[component.name] = { mask, index };
+			this.keyToCompoenentId.set(component.name, { mask, index });
 			this.pools[index++] = new Pool(component.schema, component.poolSettings);
 		}
 
@@ -55,7 +52,8 @@ export class Registry {
 		this.entityIdIncrement = 0;
 	}
 
-	// entity //////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// entity ////////////////////////////////////////////////////////////////////////////////
 
 	public createEntity = (): number => {
 		this.entities[this.entityIdIncrement] = {
@@ -93,7 +91,7 @@ export class Registry {
 			throw new Error('no component was supplied to retrive the entity iterator');
 
 		const poolIndexes = components
-			.map(constructors => this.compoenentLookupTable[constructors.name].index);
+			.map(comp => (this.keyToCompoenentId.get(comp.name) as ComponentId).index);
 
 		let smallerPoolIndex = poolIndexes[0];
 		let queryMask = 0;
@@ -110,15 +108,15 @@ export class Registry {
 		}
 	}
 
-
-	// component ///////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// component /////////////////////////////////////////////////////////////////////////////
 
 	public insertComponent = <T>(entity: number, component: ComponentConstructor<T>, ...args: unknown[]): T => {
 		if (!this.entities[entity])
 			throw new Error('can not insert a component in a non-crated entity');
 
 		const componentData = new component(...args);
-		const componentId = this.compoenentLookupTable[component.name];
+		const componentId = this.keyToCompoenentId.get(component.name) as ComponentId;
 
 		if ((this.entities[entity].componentMask & componentId.mask) === componentId.mask) {
 			const componentReference = (this.pools[componentId.index] as Pool<T>).getSectionRef(entity);
@@ -133,7 +131,7 @@ export class Registry {
 	}
 
 	public hasComponents = (entity: number, components: ComponentConstructor<unknown>[]): boolean[] => {
-		const componentMasks = components.map(comp => this.compoenentLookupTable[comp.name].mask);
+		const componentMasks = components.map(comp => (this.keyToCompoenentId.get(comp.name) as ComponentId).mask);
 		const hasComponentList: boolean[] = [];
 		for (const compMask of componentMasks)
 			hasComponentList.push((this.entities[entity].componentMask & compMask) === compMask);
@@ -144,7 +142,7 @@ export class Registry {
 		if (!this.entities[entity])
 			throw new Error('can not retrieve a component of a non-crated entity');
 
-		const componentsId = components.map(comp => this.compoenentLookupTable[comp.name]);
+		const componentsId = components.map(comp => this.keyToCompoenentId.get(comp.name) as ComponentId);
 		const componentReferenceList = [] as unknown as T;
 
 		for (const compId of componentsId) {
@@ -157,7 +155,7 @@ export class Registry {
 	}
 
 	public getComponentBuffer = (component: ComponentConstructor<unknown>): ArrayBuffer => {
-		const componentIndex = this.compoenentLookupTable[component.name].index;
+		const componentIndex = (this.keyToCompoenentId.get(component.name) as ComponentId).index;
 		return this.pools[componentIndex].getPoolData();
 	}
 
@@ -165,7 +163,7 @@ export class Registry {
 		if (!this.entities[entity])
 			throw new Error('can not remove a component of a non-crated entity');
 
-		const componentsId = components.map(comp => this.compoenentLookupTable[comp.name]);
+		const componentsId = components.map(comp => this.keyToCompoenentId.get(comp.name) as ComponentId);
 		const wasRemovedList: boolean[] = [];
 
 		for (const compId of componentsId) {
@@ -182,7 +180,7 @@ export class Registry {
 	}
 
 	public clearComponents = (components: ComponentConstructor<unknown>[]): number[] => {
-		const componentsId = components.map(comp => this.compoenentLookupTable[comp.name]);
+		const componentsId = components.map(comp => this.keyToCompoenentId.get(comp.name) as ComponentId);
 		const removedCount: number[] = [];
 
 		for (const compId of componentsId) {
@@ -199,7 +197,7 @@ export class Registry {
 	public clearAllComponents = (): number => {
 		for (const entityData of this.entities) {
 			entityData.componentMask = 0;
-			entityData.componentCount--;
+			entityData.componentCount = 0;
 		}
 
 		let deletedComponents = 0;
@@ -207,11 +205,11 @@ export class Registry {
 		return deletedComponents;
 	}
 
-
-	// utils ///////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// utils /////////////////////////////////////////////////////////////////////////////////
 
 	public getComponentInfo = (component: ComponentConstructor<unknown>): ComponentInfo => {
-		const poolIndex = this.compoenentLookupTable[component.name].index;
+		const poolIndex = (this.keyToCompoenentId.get(component.name) as ComponentId).index;
 		const poolInfo = this.pools[poolIndex].getInfo();
 
 		return {
@@ -222,24 +220,24 @@ export class Registry {
 	}
 
 	public getPoolInfo = (component: ComponentConstructor<unknown>): PoolInfo => {
-		const poolIndex = this.compoenentLookupTable[component.name].index;
+		const poolIndex = (this.keyToCompoenentId.get(component.name) as ComponentId).index;
 		return this.pools[poolIndex].getInfo();
 	}
 
 
 	private readonly pools: Pool<unknown>[];
 	private entities: EntityData[];
-	private readonly compoenentLookupTable: CompoenentLookupTable;
+	private readonly keyToCompoenentId: Map<string, ComponentId>;
 
 	private entityIdIncrement: number;
 
-
-	// static //////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// static ////////////////////////////////////////////////////////////////////////////////
 
 	public static *getComponentIteratorFromBuffer<T>(componentBuffer: ArrayBuffer,
-	component: ComponentConstructor<T>): Generator<T, void, unknown> {
+		component: ComponentConstructor<T>): Generator<T, void, unknown> {
 		if (!Registry.refs.has(component.name)) {
-			const ref = new Reference(component.schema, new DataView(componentBuffer));
+			const ref = new Reference<T>(component.schema, new DataView(componentBuffer));
 			Registry.refs.set(component.name, ref);
 		}
 
@@ -247,8 +245,7 @@ export class Registry {
 		const size = ref.getSize();
 		for (let i = 0; i < componentBuffer.byteLength; i += size) {
 			const view = new DataView(componentBuffer, i, size);
-			console.log(view.getUint8(0));
-			ref.updateRef(view);
+			ref.updateView(view);
 			yield ref.get();
 		}
 	}

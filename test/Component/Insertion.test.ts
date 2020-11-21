@@ -112,10 +112,10 @@ describe('Component insertion', () => {
 		registry.insertComponent<Component>(entity3, Component);
 
 		registry.removeComponents(entity2, [Component]);
-		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
+		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(1);
 
 		registry.insertComponent<Component>(entity4, Component);
-		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
+		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(0);
 		expect(registry.getPoolInfo(Component).usedSize)
 			.toBe(registry.getComponentInfo(Component).size * 3);
 	});
