@@ -57,7 +57,7 @@ export class Pool<T> {
 		this.freeSections = [];
 		this.keysToPoolOffset = new Map();
 
-		this.baseSectionReference = this.createBaseSectionReference();
+		this.sectionRef = this.createSectionRef();
 		this.currentPoolView = new DataView(this.buffer);
 	}
 
@@ -75,10 +75,10 @@ export class Pool<T> {
 		if (this.buffer.byteLength === offset) this.increaseBufferSize();
 
 		this.currentPoolView = new DataView(this.buffer, offset, this.sectionSize);
-		const sectionReference = this.baseSectionReference as unknown as T;
-		for (const prop in sectionReference) sectionReference[prop] = sectionValue[prop];
+		const ref = this.sectionRef as unknown as T;
+		for (const prop in ref) ref[prop] = sectionValue[prop];
 
-		return sectionReference;
+		return ref;
 	}
 
 	public getSectionCount = (): number => {
@@ -89,12 +89,16 @@ export class Pool<T> {
 		return this.keysToPoolOffset.keys();
 	}
 
-	public getSectionReference = (key: number): T => {
+	public getSectionRef = (key: number): T => {
 		// TODO: if key does not exist, return false or an error
 		const poolOffset = this.keysToPoolOffset.get(key);
 
 		this.currentPoolView = new DataView(this.buffer, poolOffset, this.sectionSize);
-		return this.baseSectionReference as unknown as T;
+		return this.sectionRef as unknown as T;
+	}
+
+	public getPoolData = (): ArrayBuffer => {
+		return this.buffer;
 	}
 
 	public deleteSection = (key: number): void => {
@@ -126,7 +130,7 @@ export class Pool<T> {
 	}
 
 
-	private createBaseSectionReference = (): T => {
+	private createSectionRef = (): T => {
 		const baseSectionRef = {} as T;
 
 		for (const layout of this.sectionLayout) {
@@ -241,7 +245,7 @@ export class Pool<T> {
 	private usedSize: number;
 	private freeSections: number[];
 	private readonly keysToPoolOffset: Map<number, number>;
-	private readonly baseSectionReference: T;
+	private readonly sectionRef: T;
 	private currentPoolView: DataView;
 }
 
