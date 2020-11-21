@@ -1,30 +1,21 @@
-import PropertyType, { PropertyTypeToSize } from './PropertyTypes';
-import LITTLE_ENDIAN from './utils/LittleEndian';
+import Reference, { ReferenceSchema, ReferenceLayout } from './Reference';
 
+export type PoolSchema = ReferenceSchema;
 
-export interface PoolSchema {
-	[propertyName: string]: PropertyType;
-}
+export type PoolSectionLayout = ReferenceLayout;
 
 export interface PoolSettings {
-	initialCount: number;
-	increaseCount: number;
+	readonly initialCount: number;
+	readonly increaseCount: number;
 }
 
 export interface PoolInfo {
 	readonly allocatedSize: number;
 	readonly usedSize: number;
-	readonly increaseSize: number;
-	readonly freeSections: number[];
+	readonly bufferIncreaseSize: number;
 	readonly sectionSize: number;
 	readonly sectionLayout: PoolSectionLayout[];
-}
-
-export interface PoolSectionLayout {
-	readonly name: string;
-	readonly type: PropertyType;
-	readonly size: number;
-	readonly offset: number;
+	readonly freeSectionsOffset: number[];
 }
 
 export const DEFAULT_POOL_INITIAL_COUNT = 100;
@@ -34,38 +25,24 @@ export const DEFAULT_POOL_INCREASE_COUNT = 10;
 
 export class Pool<T> {
 	constructor(schema: PoolSchema, settings?: PoolSettings) {
-		let sectionSize = 0;
-		const layout: PoolSectionLayout[] = [];
+		this.sectionRef = new Reference<T>(schema);
+		this.sectionSize = this.sectionRef.getSize();
+		this.sectionLayout = this.sectionRef.getLayout();
 
-		for (const propertyName in schema) {
-			const propertySize = PropertyTypeToSize[schema[propertyName]];
-			layout.push({
-				name: propertyName,
-				type: schema[propertyName],
-				size: propertySize,
-				offset: sectionSize
-			});
-			sectionSize += propertySize;
-		}
+		this.bufferInitialSize = (settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * this.sectionSize;
+		this.bufferIncreaseSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * this.sectionSize;
 
-		this.initialBufferSize = (settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * sectionSize;
-		this.buffer = new ArrayBuffer(this.initialBufferSize);
-		this.sectionSize = sectionSize;
-		this.sectionLayout = layout;
+		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
-		this.increaseSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * sectionSize;
-		this.freeSections = [];
+		this.freeSectionsOffset = [];
 		this.keysToPoolOffset = new Map();
-
-		this.sectionRef = this.createSectionRef();
-		this.currentPoolView = new DataView(this.buffer);
 	}
 
 	public insertSection = (key: number, sectionValue: T): T => {
 		let offset: number;
 
-		if (this.freeSections.length >= 1) {
-			offset = this.freeSections.pop() as number;
+		if (this.freeSectionsOffset.length >= 1) {
+			offset = this.freeSectionsOffset.pop() as number;
 		} else {
 			offset = this.usedSize;
 		}
@@ -74,27 +51,23 @@ export class Pool<T> {
 		this.keysToPoolOffset.set(key, offset);
 		if (this.buffer.byteLength === offset) this.increaseBufferSize();
 
-		this.currentPoolView = new DataView(this.buffer, offset, this.sectionSize);
-		const ref = this.sectionRef as unknown as T;
+		this.sectionRef.updateView(new DataView(this.buffer, offset, this.sectionSize));
+		const ref = this.sectionRef.get();
 		for (const prop in ref) ref[prop] = sectionValue[prop];
 
 		return ref;
 	}
 
-	public getSectionCount = (): number => {
-		return this.usedSize / this.sectionSize;
-	}
+	public getSectionCount = (): number => this.usedSize / this.sectionSize
 
-	public getKeysIterator = (): IterableIterator<number> => {
-		return this.keysToPoolOffset.keys();
-	}
+	public getKeysIterator = (): IterableIterator<number> => this.keysToPoolOffset.keys()
 
 	public getSectionRef = (key: number): T => {
 		// TODO: if key does not exist, return false or an error
 		const poolOffset = this.keysToPoolOffset.get(key);
 
-		this.currentPoolView = new DataView(this.buffer, poolOffset, this.sectionSize);
-		return this.sectionRef as unknown as T;
+		this.sectionRef.updateView(new DataView(this.buffer, poolOffset, this.sectionSize));
+		return this.sectionRef.get();
 	}
 
 	public getPoolData = (): ArrayBuffer => {
@@ -105,133 +78,34 @@ export class Pool<T> {
 	public deleteSection = (key: number): void => {
 		// TODO: if key does not exist, return false or an error
 		const poolOffset = this.keysToPoolOffset.get(key) as number;
-		
-		this.freeSections.push(poolOffset);
+
+		this.freeSectionsOffset.push(poolOffset);
 		this.usedSize -= this.sectionSize;
 	}
 
 	public deleteAllSections = (): number => {
 		const deletedSections = this.usedSize / this.sectionSize;
-		this.buffer = new ArrayBuffer(this.initialBufferSize);
-		this.freeSections = [];
+		this.buffer = new ArrayBuffer(this.bufferInitialSize);
+		this.freeSectionsOffset.length = 0;
 		this.usedSize = 0;
 		return deletedSections;
 	}
 
 
-	public getInfo = (): PoolInfo => {
-		return {
-			allocatedSize: this.buffer.byteLength,
-			usedSize: this.usedSize,
-			increaseSize: this.increaseSize,
-			freeSections: this.freeSections,
-			sectionSize: this.sectionSize,
-			sectionLayout: this.sectionLayout
-		};
-	}
+	public getInfo = (): PoolInfo => ({
+		allocatedSize: this.buffer.byteLength,
+		usedSize: this.usedSize,
+		bufferIncreaseSize: this.bufferIncreaseSize,
+		freeSectionsOffset: this.freeSectionsOffset,
+		sectionSize: this.sectionSize,
+		sectionLayout: this.sectionLayout
+	})
 
-
-	private createSectionRef = (): T => {
-		const baseSectionRef = {} as T;
-
-		for (const layout of this.sectionLayout) {
-			switch (layout.type) {
-				case PropertyType.U_INT_8:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getUint8(layout.offset),
-						set: (value: number): void => this.currentPoolView.setUint8(layout.offset, value)
-					});
-					break;
-
-				case PropertyType.U_INT_16:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getUint16(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => this.currentPoolView.setUint16(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.U_INT_32:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getUint32(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => this.currentPoolView.setUint32(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.U_INT_64:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): bigint => this.currentPoolView.getBigUint64(layout.offset, LITTLE_ENDIAN),
-						set: (value: bigint): void => this.currentPoolView.setBigUint64(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.INT_8:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getInt8(layout.offset),
-						set: (value: number): void => this.currentPoolView.setInt8(layout.offset, value),
-					});
-					break;
-
-				case PropertyType.INT_16:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getInt16(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => this.currentPoolView.setInt16(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.INT_32:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getInt32(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => this.currentPoolView.setInt32(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.INT_64:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): bigint => this.currentPoolView.getBigInt64(layout.offset, LITTLE_ENDIAN),
-						set: (value: bigint): void => this.currentPoolView.setBigInt64(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.FLOAT_32:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getFloat32(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => this.currentPoolView.setFloat32(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-
-				case PropertyType.FLOAT_64:
-					Object.defineProperty(baseSectionRef, layout.name, {
-						configurable: false,
-						enumerable: true,
-						get: (): number => this.currentPoolView.getFloat64(layout.offset, LITTLE_ENDIAN),
-						set: (value: number): void => this.currentPoolView.setFloat64(layout.offset, value, LITTLE_ENDIAN),
-					});
-					break;
-			}
-		}
-		return baseSectionRef;
-	}
+	//////////////////////////////////////////////////////////////////////////////////////////
+	// private members ///////////////////////////////////////////////////////////////////////
 
 	private increaseBufferSize = (): void => {
-		const newLargerBuffer = new ArrayBuffer(this.buffer.byteLength + this.increaseSize);
+		const newLargerBuffer = new ArrayBuffer(this.buffer.byteLength + this.bufferIncreaseSize);
 		const oldBufferView = new Uint8Array(this.buffer);
 		(new Uint8Array(newLargerBuffer)).set(oldBufferView);
 
@@ -240,37 +114,35 @@ export class Pool<T> {
 
 	private defragBuffer = (): void => {
 		const bufferView = new Uint8Array(this.buffer);
-
 		let lastComponentSection = this.usedSize;
-		let lastIndexFreeSection = this.freeSections.length - 1;
+		let lastFreeSectionIndex = this.freeSectionsOffset.length - 1;
 
-		while (this.freeSections.length !== 0) {
-			if (lastComponentSection === this.freeSections[lastIndexFreeSection]) {
-				this.freeSections[lastIndexFreeSection] = undefined as unknown as number;
+		while (this.freeSectionsOffset.length !== 0) {
+			if (lastComponentSection === this.freeSectionsOffset[lastFreeSectionIndex]) {
+				this.freeSectionsOffset.splice(lastFreeSectionIndex, 1);
 			} else {
 				bufferView.set(
 					bufferView.slice(lastComponentSection, lastComponentSection + this.sectionSize),
-					this.freeSections.shift()
+					this.freeSectionsOffset.shift()
 				);
 			}
-
 			lastComponentSection -= this.sectionSize;
-			lastIndexFreeSection -= 1;
+			lastFreeSectionIndex -= 1;
 		}
 
 		this.usedSize = lastComponentSection + this.sectionSize;
 	}
 
+
 	private buffer: ArrayBuffer;
-	private readonly initialBufferSize: number;
-	private readonly increaseSize: number;
+	private readonly bufferInitialSize: number;
+	private readonly bufferIncreaseSize: number;
+	private readonly sectionRef: Reference<T>;
 	private readonly sectionSize: number;
 	private readonly sectionLayout: PoolSectionLayout[];
 	private usedSize: number;
-	private freeSections: number[];
+	private readonly freeSectionsOffset: number[];
 	private readonly keysToPoolOffset: Map<number, number>;
-	private readonly sectionRef: T;
-	private currentPoolView: DataView;
 }
 
 export default Pool;

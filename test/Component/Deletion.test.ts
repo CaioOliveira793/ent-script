@@ -57,7 +57,7 @@ describe('Component deletion', () => {
 		registry.insertComponent<Component>(entity, Component);
 
 		expect(registry.removeComponents(entity, [Component])).toStrictEqual([true]);
-		expect(registry.getPoolInfo(Component).freeSections.length).toBe(1);
+		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(1);
 	});
 
 	it('delete a non-existent component', () => {
@@ -65,7 +65,7 @@ describe('Component deletion', () => {
 		const entity = registry.createEntity();
 
 		expect(registry.removeComponents(entity, [Component])).toStrictEqual([false]);
-		expect(registry.getPoolInfo(Component).freeSections.length).toBe(0);
+		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(0);
 	});
 
 	it('throw an error when remove a component in a non-existent entity', () => {
