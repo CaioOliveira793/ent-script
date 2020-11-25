@@ -34,6 +34,8 @@ export class Pool<T> {
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
 		this.keysToPoolOffset = [];
+
+		this.sectionRef.updateView(new DataView(this.buffer));
 	}
 
 	public insertSection = (key: number, sectionValue: T): T => {
@@ -43,7 +45,7 @@ export class Pool<T> {
 		this.keysToPoolOffset[key] = offset;
 		if (this.buffer.byteLength === offset) this.increaseBufferSize();
 
-		this.sectionRef.updateView(new DataView(this.buffer, offset, this.sectionSize));
+		this.sectionRef.updateOffset(offset);
 		const ref = this.sectionRef.get();
 		for (const prop in ref) ref[prop] = sectionValue[prop];
 
@@ -57,7 +59,7 @@ export class Pool<T> {
 	public getSectionRef = (key: number): T => {
 		const poolOffset = this.keysToPoolOffset[key];
 
-		this.sectionRef.updateView(new DataView(this.buffer, poolOffset, this.sectionSize));
+		this.sectionRef.updateOffset(poolOffset);
 		return this.sectionRef.get();
 	}
 
@@ -107,6 +109,7 @@ export class Pool<T> {
 		(new Uint8Array(newLargerBuffer)).set(oldBufferView);
 
 		this.buffer = newLargerBuffer;
+		this.sectionRef.updateView(new DataView(this.buffer));
 	}
 
 
