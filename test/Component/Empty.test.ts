@@ -19,8 +19,7 @@ describe('Empty components', () => {
 			allocatedSize: 0,
 			usedSize: 0,
 			sectionSize: 0,
-			sectionLayout: [],
-			freeSectionsOffset: [],
+			sectionLayout: []
 		} as PoolInfo);
 	});
 
@@ -47,8 +46,7 @@ describe('Empty components', () => {
 			allocatedSize: 0,
 			usedSize: 0,
 			sectionSize: 0,
-			sectionLayout: [],
-			freeSectionsOffset: [],
+			sectionLayout: []
 		} as PoolInfo);
 	});
 

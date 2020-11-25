@@ -15,7 +15,6 @@ export interface PoolInfo {
 	readonly bufferIncreaseSize: number;
 	readonly sectionSize: number;
 	readonly sectionLayout: PoolSectionLayout[];
-	readonly freeSectionsOffset: number[];
 }
 
 export const DEFAULT_POOL_INITIAL_COUNT = 100;
@@ -34,21 +33,14 @@ export class Pool<T> {
 
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
-		this.freeSectionsOffset = [];
-		this.keysToPoolOffset = new Map();
+		this.keysToPoolOffset = [];
 	}
 
 	public insertSection = (key: number, sectionValue: T): T => {
-		let offset: number;
-
-		if (this.freeSectionsOffset.length >= 1) {
-			offset = this.freeSectionsOffset.pop() as number;
-		} else {
-			offset = this.usedSize;
-		}
+		const offset = this.usedSize;
 
 		this.usedSize += this.sectionSize;
-		this.keysToPoolOffset.set(key, offset);
+		this.keysToPoolOffset[key] = offset;
 		if (this.buffer.byteLength === offset) this.increaseBufferSize();
 
 		this.sectionRef.updateView(new DataView(this.buffer, offset, this.sectionSize));
@@ -60,33 +52,39 @@ export class Pool<T> {
 
 	public getSectionCount = (): number => this.usedSize / this.sectionSize
 
-	public getKeysIterator = (): IterableIterator<number> => this.keysToPoolOffset.keys()
+	public getKeysIterator = (): IterableIterator<number> => this.keysToPoolOffset.keys();
 
 	public getSectionRef = (key: number): T => {
-		// TODO: if key does not exist, return false or an error
-		const poolOffset = this.keysToPoolOffset.get(key);
+		const poolOffset = this.keysToPoolOffset[key];
 
 		this.sectionRef.updateView(new DataView(this.buffer, poolOffset, this.sectionSize));
 		return this.sectionRef.get();
 	}
 
 	public getPoolData = (): ArrayBuffer => {
-		this.defragBuffer();
 		return this.buffer.slice(0, this.usedSize);
 	}
 
-	public deleteSection = (key: number): void => {
-		// TODO: if key does not exist, return false or an error
-		const poolOffset = this.keysToPoolOffset.get(key) as number;
+	public deleteSection = (key: number): boolean => {
+		const bufferView = new Uint8Array(this.buffer);
+		const offset = this.keysToPoolOffset[key];
 
-		if (this.sectionSize !== 0) this.freeSectionsOffset.push(poolOffset);
+		if (offset === this.usedSize - this.sectionSize) {
+			this.usedSize -= this.sectionSize;
+			return false;
+		}
+
+		bufferView.set(bufferView.slice(this.usedSize - this.sectionSize, this.usedSize), offset);
+		this.keysToPoolOffset[this.keysToPoolOffset.indexOf(this.usedSize - this.sectionSize)] = offset;
+		this.keysToPoolOffset[key] = undefined as unknown as number;
+
 		this.usedSize -= this.sectionSize;
+		return true;
 	}
 
 	public deleteAllSections = (): number => {
 		const deletedSections = this.usedSize / this.sectionSize;
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
-		this.freeSectionsOffset.length = 0;
 		this.usedSize = 0;
 		return deletedSections;
 	}
@@ -96,7 +94,6 @@ export class Pool<T> {
 		allocatedSize: this.buffer.byteLength,
 		usedSize: this.usedSize,
 		bufferIncreaseSize: this.bufferIncreaseSize,
-		freeSectionsOffset: this.freeSectionsOffset,
 		sectionSize: this.sectionSize,
 		sectionLayout: this.sectionLayout
 	})
@@ -112,27 +109,6 @@ export class Pool<T> {
 		this.buffer = newLargerBuffer;
 	}
 
-	private defragBuffer = (): void => {
-		const bufferView = new Uint8Array(this.buffer);
-		let lastComponentSection = this.usedSize;
-		let lastFreeSectionIndex = this.freeSectionsOffset.length - 1;
-
-		while (this.freeSectionsOffset.length !== 0) {
-			if (lastComponentSection === this.freeSectionsOffset[lastFreeSectionIndex]) {
-				this.freeSectionsOffset.splice(lastFreeSectionIndex, 1);
-			} else {
-				bufferView.set(
-					bufferView.slice(lastComponentSection, lastComponentSection + this.sectionSize),
-					this.freeSectionsOffset.shift()
-				);
-			}
-			lastComponentSection -= this.sectionSize;
-			lastFreeSectionIndex -= 1;
-		}
-
-		this.usedSize = lastComponentSection + this.sectionSize;
-	}
-
 
 	private buffer: ArrayBuffer;
 	private readonly bufferInitialSize: number;
@@ -141,8 +117,7 @@ export class Pool<T> {
 	private readonly sectionSize: number;
 	private readonly sectionLayout: PoolSectionLayout[];
 	private usedSize: number;
-	private readonly freeSectionsOffset: number[];
-	private readonly keysToPoolOffset: Map<number, number>;
+	private readonly keysToPoolOffset: number[];
 }
 
 export default Pool;
