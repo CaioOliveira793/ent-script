@@ -12,14 +12,14 @@ export interface PoolSettings {
 export interface PoolInfo {
 	readonly allocatedSize: number;
 	readonly usedSize: number;
-	readonly bufferIncreaseSize: number;
+	readonly bufferDeltaSize: number;
 	readonly sectionSize: number;
 	readonly sectionLayout: PoolSectionLayout[];
 }
 
-export const DEFAULT_POOL_INITIAL_COUNT = 100;
+export const DEFAULT_POOL_INITIAL_COUNT = 1024;
 
-export const DEFAULT_POOL_INCREASE_COUNT = 10;
+export const DEFAULT_POOL_INCREASE_COUNT = DEFAULT_POOL_INITIAL_COUNT / 4;
 
 
 export class Pool<T> {
@@ -29,7 +29,7 @@ export class Pool<T> {
 		this.sectionLayout = this.sectionRef.getLayout();
 
 		this.bufferInitialSize = (settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * this.sectionSize;
-		this.bufferIncreaseSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * this.sectionSize;
+		this.bufferDeltaSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * this.sectionSize;
 
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
@@ -57,31 +57,27 @@ export class Pool<T> {
 	public getKeysIterator = (): IterableIterator<number> => this.keysToPoolOffset.keys();
 
 	public getSectionRef = (key: number): T => {
-		const poolOffset = this.keysToPoolOffset[key];
-
-		this.sectionRef.updateOffset(poolOffset);
+		this.sectionRef.updateOffset(this.keysToPoolOffset[key]);
 		return this.sectionRef.get();
 	}
 
-	public getPoolData = (): ArrayBuffer => {
-		return this.buffer.slice(0, this.usedSize);
-	}
+	public getPoolData = (): ArrayBuffer => this.buffer.slice(0, this.usedSize);
 
 	public deleteSection = (key: number): boolean => {
 		const bufferView = new Uint8Array(this.buffer);
 		const offset = this.keysToPoolOffset[key];
+		let deleted = false;
 
-		if (offset === this.usedSize - this.sectionSize) {
-			this.usedSize -= this.sectionSize;
-			return false;
+		if (offset !== this.usedSize - this.sectionSize) {
+			bufferView.set(bufferView.slice(this.usedSize - this.sectionSize, this.usedSize), offset);
+			this.keysToPoolOffset[this.keysToPoolOffset.indexOf(this.usedSize - this.sectionSize)] = offset;
+			this.keysToPoolOffset[key] = undefined as unknown as number;
+			deleted = true;
 		}
 
-		bufferView.set(bufferView.slice(this.usedSize - this.sectionSize, this.usedSize), offset);
-		this.keysToPoolOffset[this.keysToPoolOffset.indexOf(this.usedSize - this.sectionSize)] = offset;
-		this.keysToPoolOffset[key] = undefined as unknown as number;
-
 		this.usedSize -= this.sectionSize;
-		return true;
+		if (this.buffer.byteLength - (2 * this.bufferDeltaSize) === this.usedSize) this.decreaseBufferSize();
+		return deleted;
 	}
 
 	public deleteAllSections = (): number => {
@@ -95,7 +91,7 @@ export class Pool<T> {
 	public getInfo = (): PoolInfo => ({
 		allocatedSize: this.buffer.byteLength,
 		usedSize: this.usedSize,
-		bufferIncreaseSize: this.bufferIncreaseSize,
+		bufferDeltaSize: this.bufferDeltaSize,
 		sectionSize: this.sectionSize,
 		sectionLayout: this.sectionLayout
 	})
@@ -104,18 +100,22 @@ export class Pool<T> {
 	// private members ///////////////////////////////////////////////////////////////////////
 
 	private increaseBufferSize = (): void => {
-		const newLargerBuffer = new ArrayBuffer(this.buffer.byteLength + this.bufferIncreaseSize);
+		const newLargerBuffer = new ArrayBuffer(this.buffer.byteLength + this.bufferDeltaSize);
 		const oldBufferView = new Uint8Array(this.buffer);
 		(new Uint8Array(newLargerBuffer)).set(oldBufferView);
-
 		this.buffer = newLargerBuffer;
+		this.sectionRef.updateView(new DataView(this.buffer));
+	}
+
+	private decreaseBufferSize = (): void => {
+		this.buffer = this.buffer.slice(0, this.buffer.byteLength - this.bufferDeltaSize);
 		this.sectionRef.updateView(new DataView(this.buffer));
 	}
 
 
 	private buffer: ArrayBuffer;
 	private readonly bufferInitialSize: number;
-	private readonly bufferIncreaseSize: number;
+	private readonly bufferDeltaSize: number;
 	private readonly sectionRef: Reference<T>;
 	private readonly sectionSize: number;
 	private readonly sectionLayout: PoolSectionLayout[];

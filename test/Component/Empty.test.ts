@@ -15,7 +15,7 @@ describe('Empty components', () => {
 		expect(tag).toStrictEqual({});
 		expect(registry.getEntityComponentCount(entity)).toBe(1);
 		expect(registry.getPoolInfo(TagComponent)).toStrictEqual({
-			bufferIncreaseSize: 0,
+			bufferDeltaSize: 0,
 			allocatedSize: 0,
 			usedSize: 0,
 			sectionSize: 0,
@@ -42,7 +42,7 @@ describe('Empty components', () => {
 		registry.removeComponents(5, [TagComponent]);
 
 		expect(registry.getPoolInfo(TagComponent)).toStrictEqual({
-			bufferIncreaseSize: 0,
+			bufferDeltaSize: 0,
 			allocatedSize: 0,
 			usedSize: 0,
 			sectionSize: 0,
