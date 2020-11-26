@@ -75,33 +75,6 @@ describe('Component deletion', () => {
 			.toThrowError('can not remove a component of a non-crated entity');
 	});
 
-	it('free unused buffer memory', () => {
-		const registry = new Registry([Component]);
-
-		const ent1 = registry.createEntity();
-		const ent2 = registry.createEntity();
-		const ent3 = registry.createEntity();
-		const ent4 = registry.createEntity();
-		const ent5 = registry.createEntity();
-		const ent6 = registry.createEntity();
-		const ent7 = registry.createEntity();
-		registry.insertComponent(ent1, Component);
-		registry.insertComponent(ent2, Component);
-		registry.insertComponent(ent3, Component);
-		registry.insertComponent(ent4, Component);
-		registry.insertComponent(ent5, Component);
-		registry.insertComponent(ent6, Component);
-		registry.insertComponent(ent7, Component);
-
-		registry.removeComponents(ent2, [Component]);
-		registry.removeComponents(ent3, [Component]);
-		registry.removeComponents(ent6, [Component]);
-
-		const poolInfo = registry.getPoolInfo(Component);
-		expect(poolInfo.bufferDeltaSize / poolInfo.sectionSize).toBe(POOL_INCREASE_COUNT);
-		expect(poolInfo.allocatedSize).toBe(6 * poolInfo.sectionSize);
-	});
-
 
 	it('clear one type of compoenent', () => {
 		const registry = new Registry([Component, FullPropertyComponent]);

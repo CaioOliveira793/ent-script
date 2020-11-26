@@ -5,8 +5,9 @@ export type PoolSchema = ReferenceSchema;
 export type PoolSectionLayout = ReferenceLayout;
 
 export interface PoolSettings {
-	readonly initialCount: number;
-	readonly increaseCount: number;
+	readonly initialCount?: number;
+	readonly increaseCount?: number;
+	readonly customAllocator?: (oldBuffer: ArrayBuffer, deltaSize: number) => ArrayBuffer;
 }
 
 export interface PoolInfo {
@@ -30,6 +31,7 @@ export class Pool<T> {
 
 		this.bufferInitialSize = (settings?.initialCount ?? DEFAULT_POOL_INITIAL_COUNT) * this.sectionSize;
 		this.bufferDeltaSize = (settings?.increaseCount ?? DEFAULT_POOL_INCREASE_COUNT) * this.sectionSize;
+		this.customAllocator = settings?.customAllocator;
 
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
@@ -43,7 +45,7 @@ export class Pool<T> {
 
 		this.usedSize += this.sectionSize;
 		this.keysToPoolOffset[key] = offset;
-		if (this.buffer.byteLength === offset) this.increaseBufferSize();
+		if (this.buffer.byteLength <= offset) this.increaseBufferSize();
 
 		this.sectionRef.updateOffset(offset);
 		const ref = this.sectionRef.get();
@@ -76,7 +78,7 @@ export class Pool<T> {
 		}
 
 		this.usedSize -= this.sectionSize;
-		if (this.buffer.byteLength - (2 * this.bufferDeltaSize) === this.usedSize) this.decreaseBufferSize();
+		if (this.buffer.byteLength - (2 * this.bufferDeltaSize) >= this.usedSize) this.decreaseBufferSize();
 		return deleted;
 	}
 
@@ -100,6 +102,12 @@ export class Pool<T> {
 	// private members ///////////////////////////////////////////////////////////////////////
 
 	private increaseBufferSize = (): void => {
+		if (this.customAllocator) {
+			this.buffer = this.customAllocator(this.buffer, this.bufferDeltaSize);
+			this.sectionRef.updateView(new DataView(this.buffer));
+			return;
+		}
+
 		const newLargerBuffer = new ArrayBuffer(this.buffer.byteLength + this.bufferDeltaSize);
 		const oldBufferView = new Uint8Array(this.buffer);
 		(new Uint8Array(newLargerBuffer)).set(oldBufferView);
@@ -108,6 +116,12 @@ export class Pool<T> {
 	}
 
 	private decreaseBufferSize = (): void => {
+		if (this.customAllocator) {
+			this.buffer = this.customAllocator(this.buffer, -this.bufferDeltaSize);
+			this.sectionRef.updateView(new DataView(this.buffer));
+			return;
+		}
+
 		this.buffer = this.buffer.slice(0, this.buffer.byteLength - this.bufferDeltaSize);
 		this.sectionRef.updateView(new DataView(this.buffer));
 	}
@@ -116,6 +130,7 @@ export class Pool<T> {
 	private buffer: ArrayBuffer;
 	private readonly bufferInitialSize: number;
 	private readonly bufferDeltaSize: number;
+	private readonly customAllocator?: (oldBuffer: ArrayBuffer, deltaSize: number) => ArrayBuffer;
 	private readonly sectionRef: Reference<T>;
 	private readonly sectionSize: number;
 	private readonly sectionLayout: PoolSectionLayout[];

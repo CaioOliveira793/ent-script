@@ -87,18 +87,6 @@ describe('Component insertion', () => {
 		});
 	});
 
-	it('increase buffer size when insert new components', () => {
-		const registry = new Registry([Component]);
-
-		for (let i = 0; i < POOL_INCREASE_COUNT + 1; i++) {
-			const entity = registry.createEntity();
-			registry.insertComponent<Component>(entity, Component);
-		}
-
-		expect(registry.getPoolInfo(Component).usedSize)
-			.toBeGreaterThanOrEqual(registry.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
-	});
-
 	it('use free pool section of the previously excluded component', () => {
 		const registry = new Registry([Component]);
 
