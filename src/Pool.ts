@@ -18,6 +18,8 @@ export interface PoolInfo {
 	readonly sectionLayout: PoolSectionLayout[];
 }
 
+export type SectionKey = number | string;
+
 export const DEFAULT_POOL_INITIAL_COUNT = 1024;
 
 export const DEFAULT_POOL_INCREASE_COUNT = DEFAULT_POOL_INITIAL_COUNT / 4;
@@ -35,16 +37,18 @@ export class Pool<T> {
 
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
-		this.keysToPoolOffset = [];
+		this.keysToPoolOffset = new Map;
+		this.insertedKeys = [];
 
 		this.sectionRef.updateView(new DataView(this.buffer));
 	}
 
-	public insertSection = (key: number, sectionValue: T): T => {
+	public insertSection = (key: SectionKey, sectionValue: T): T => {
 		const offset = this.usedSize;
 
 		this.usedSize += this.sectionSize;
-		this.keysToPoolOffset[key] = offset;
+		this.keysToPoolOffset.set(key, offset);
+		this.insertedKeys.push(key);
 		if (this.buffer.byteLength <= offset) this.increaseBufferSize();
 
 		this.sectionRef.updateOffset(offset);
@@ -56,24 +60,26 @@ export class Pool<T> {
 
 	public getSectionCount = (): number => this.usedSize / this.sectionSize
 
-	public getKeysIterator = (): IterableIterator<number> => this.keysToPoolOffset.keys();
+	public getKeysIterator = (): IterableIterator<SectionKey> => this.keysToPoolOffset.keys();
 
-	public getSectionRef = (key: number): T => {
-		this.sectionRef.updateOffset(this.keysToPoolOffset[key]);
+	public getSectionRef = (key: SectionKey): T => {
+		this.sectionRef.updateOffset(this.keysToPoolOffset.get(key) as number);
 		return this.sectionRef.get();
 	}
 
 	public getPoolData = (): ArrayBuffer => this.buffer.slice(0, this.usedSize);
 
-	public deleteSection = (key: number): boolean => {
+	public deleteSection = (key: SectionKey): boolean => {
 		const bufferView = new Uint8Array(this.buffer);
-		const offset = this.keysToPoolOffset[key];
+		const offset = this.keysToPoolOffset.get(key) as number;
 		let deleted = false;
 
 		if (offset !== this.usedSize - this.sectionSize) {
 			bufferView.set(bufferView.slice(this.usedSize - this.sectionSize, this.usedSize), offset);
-			this.keysToPoolOffset[this.keysToPoolOffset.indexOf(this.usedSize - this.sectionSize)] = offset;
-			this.keysToPoolOffset[key] = undefined as unknown as number;
+			const lastKey = this.insertedKeys.pop() as SectionKey;
+			this.keysToPoolOffset.set(lastKey, offset);
+			this.keysToPoolOffset.delete(key);
+			this.insertedKeys[offset / this.sectionSize] = lastKey;
 			deleted = true;
 		}
 
@@ -86,6 +92,8 @@ export class Pool<T> {
 		const deletedSections = this.usedSize / this.sectionSize;
 		this.buffer = new ArrayBuffer(this.bufferInitialSize);
 		this.usedSize = 0;
+		this.keysToPoolOffset.clear();
+		this.insertedKeys.length = 0;
 		return deletedSections;
 	}
 
@@ -135,7 +143,8 @@ export class Pool<T> {
 	private readonly sectionSize: number;
 	private readonly sectionLayout: PoolSectionLayout[];
 	private usedSize: number;
-	private readonly keysToPoolOffset: number[];
+	private readonly keysToPoolOffset: Map<SectionKey, number>;
+	private readonly insertedKeys: SectionKey[];
 }
 
 export default Pool;

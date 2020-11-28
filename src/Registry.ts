@@ -101,7 +101,7 @@ export class Registry {
 				<= this.pools[index].getSectionCount()) ? smallerPoolIndex : index;
 		}
 
-		const entitiesIterator = this.pools[smallerPoolIndex].getKeysIterator();
+		const entitiesIterator = this.pools[smallerPoolIndex].getKeysIterator() as IterableIterator<number>;
 		for (const entity of entitiesIterator) {
 			if ((this.entities[entity].componentMask & queryMask) === queryMask)
 				yield entity;
@@ -184,7 +184,7 @@ export class Registry {
 		const removedCount: number[] = [];
 
 		for (const compId of componentsId) {
-			const entitiesIterable = this.pools[compId.index].getKeysIterator();
+			const entitiesIterable = this.pools[compId.index].getKeysIterator() as IterableIterator<number>;
 			for (const entity of entitiesIterable) {
 				this.entities[entity].componentMask ^= compId.mask;
 				this.entities[entity].componentCount--;
