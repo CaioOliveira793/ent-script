@@ -60,8 +60,7 @@ describe('Registry construction', () => {
 		const expectedPoolInfo: PoolInfo = {
 			allocatedSize: 14 * PropertyTypeToSize[PropertyType.FLOAT_32],
 			usedSize: 0,
-			bufferIncreaseSize: 20 * PropertyTypeToSize[PropertyType.FLOAT_32],
-			freeSectionsOffset: [],
+			bufferDeltaSize: 20 * PropertyTypeToSize[PropertyType.FLOAT_32],
 			sectionSize: PropertyTypeToSize[PropertyType.FLOAT_32],
 			sectionLayout: [{
 				name: 'property',

@@ -33,7 +33,7 @@ describe('Entity', () => {
 		registry.insertComponent<Component>(entity, Component);
 
 		expect(registry.destroyEntity(entity)).toBe(true);
-		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(1);
+		expect(registry.getPoolInfo(Component).usedSize).toBe(0);
 	});
 
 	it('verify if a entity exists', () => {

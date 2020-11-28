@@ -87,18 +87,6 @@ describe('Component insertion', () => {
 		});
 	});
 
-	it('increase buffer size when insert new components', () => {
-		const registry = new Registry([Component]);
-
-		for (let i = 0; i < POOL_INCREASE_COUNT + 1; i++) {
-			const entity = registry.createEntity();
-			registry.insertComponent<Component>(entity, Component);
-		}
-
-		expect(registry.getPoolInfo(Component).usedSize)
-			.toBeGreaterThanOrEqual(registry.getComponentInfo(Component).size * (POOL_INCREASE_COUNT + 1));
-	});
-
 	it('use free pool section of the previously excluded component', () => {
 		const registry = new Registry([Component]);
 
@@ -112,10 +100,9 @@ describe('Component insertion', () => {
 		registry.insertComponent<Component>(entity3, Component);
 
 		registry.removeComponents(entity2, [Component]);
-		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(1);
+		expect(registry.getPoolInfo(Component).usedSize).toBe(registry.getComponentInfo(Component).size * 2);
 
 		registry.insertComponent<Component>(entity4, Component);
-		expect(registry.getPoolInfo(Component).freeSectionsOffset.length).toBe(0);
 		expect(registry.getPoolInfo(Component).usedSize)
 			.toBe(registry.getComponentInfo(Component).size * 3);
 	});
