@@ -33,8 +33,10 @@ export class Registry {
 	constructor(componentConstructors: ComponentConstructor<unknown>[]) {
 		const totalComponents = componentConstructors.length;
 
-		if (totalComponents <= 0) throw new Error('no component was supplied in the Registry constructor');
-		if (totalComponents > REGISTRY_MAX_COMPONENTS) throw new Error('max number of 32 components was exceeded');
+		if (totalComponents <= 0)
+			throw new Error('no component was supplied in the Registry constructor');
+		if (totalComponents > REGISTRY_MAX_COMPONENTS)
+			throw new Error('32 components is the max number supported per Registry');
 
 		this.pools = [];
 		this.pools.length = totalComponents;
@@ -81,14 +83,14 @@ export class Registry {
 
 	public getEntityComponentCount = (entity: number): number => {
 		if (!this.entities[entity])
-			throw new Error('can not retrieve component count of a non-crated entity');
+			throw new Error(`can not return component count of a non-crated entity ${entity}`);
 
 		return this.entities[entity].componentCount;
 	}
 
 	public *getEntitiesIteratorWith(components: ComponentConstructor<unknown>[]): Generator<number, void, unknown> {
 		if (components.length <= 0)
-			throw new Error('no component was supplied to retrive the entity iterator');
+			throw new Error('the entity iterator need at least one component');
 
 		const poolIndexes = components
 			.map(comp => (this.keyToCompoenentId.get(comp.name) as ComponentId).index);
@@ -113,7 +115,7 @@ export class Registry {
 
 	public insertComponent = <T>(entity: number, component: ComponentConstructor<T>, ...args: unknown[]): T => {
 		if (!this.entities[entity])
-			throw new Error('can not insert a component in a non-crated entity');
+			throw new Error(`can not insert a component in a non-crated entity ${entity}`);
 
 		const componentData = new component(...args);
 		const componentId = this.keyToCompoenentId.get(component.name) as ComponentId;
@@ -140,14 +142,14 @@ export class Registry {
 
 	public getComponents = <T extends unknown[]>(entity: number, components: ComponentConstructor<unknown>[]): T => {
 		if (!this.entities[entity])
-			throw new Error('can not retrieve a component of a non-crated entity');
+			throw new Error(`can not return a component of a non-crated entity ${entity}`);
 
 		const componentsId = components.map(comp => this.keyToCompoenentId.get(comp.name) as ComponentId);
 		const componentReferenceList = [] as unknown as T;
 
 		for (const compId of componentsId) {
 			if ((this.entities[entity].componentMask & compId.mask) !== compId.mask)
-				throw new Error(`entity does not have component ${components[componentReferenceList.length].name} to retrieve`);
+				componentReferenceList.push(undefined);
 			else
 				componentReferenceList.push(this.pools[compId.index].getSectionRef(entity));
 		}
@@ -161,7 +163,7 @@ export class Registry {
 
 	public removeComponents = (entity: number, components: ComponentConstructor<unknown>[]): boolean[] => {
 		if (!this.entities[entity])
-			throw new Error('can not remove a component of a non-crated entity');
+			throw new Error(`can not remove a component of a non-crated entity ${entity}`);
 
 		const componentsId = components.map(comp => this.keyToCompoenentId.get(comp.name) as ComponentId);
 		const wasRemovedList: boolean[] = [];
@@ -242,10 +244,10 @@ export class Registry {
 		}
 
 		const ref = Registry.refs.get(component.name) as Reference<T>;
+		ref.updateView(new DataView(componentBuffer));
 		const size = ref.getSize();
 		for (let i = 0; i < componentBuffer.byteLength; i += size) {
-			const view = new DataView(componentBuffer, i, size);
-			ref.updateView(view);
+			ref.updateOffset(i);
 			yield ref.get();
 		}
 	}

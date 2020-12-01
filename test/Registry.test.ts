@@ -22,7 +22,7 @@ describe('Registry construction', () => {
 		}
 
 		expect(() => new Registry(componentsList))
-			.toThrowError('max number of 32 components was exceeded');
+			.toThrowError('32 components is the max number supported per Registry');
 	});
 
 	it('create a pool with the component', () => {
