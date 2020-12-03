@@ -72,7 +72,7 @@ describe('Component deletion', () => {
 		const registry = new Registry([Component]);
 
 		expect(() => registry.removeComponents(3, [Component]))
-			.toThrowError('can not remove a component of a non-crated entity');
+			.toThrowError('can not remove a component of a non-crated entity 3');
 	});
 
 

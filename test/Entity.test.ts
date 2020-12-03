@@ -43,7 +43,7 @@ describe('Entity', () => {
 		expect(registry.isExistentEntity(entity)).toBe(true);
 	});
 
-	it('retrieve component count of a entity', () => {
+	it('return component count of a entity', () => {
 		const registry = new Registry([Component]);
 		const entity1 = registry.createEntity();
 		registry.insertComponent(entity1, Component);
@@ -56,11 +56,11 @@ describe('Entity', () => {
 		expect(registry.getEntityComponentCount(entity2)).toBe(0);
 	});
 
-	it('throw an error when retrieve component count of a non-created entity', () => {
+	it('throw an error when return component count of a non-created entity', () => {
 		const registry = new Registry([Component]);
 
 		expect(() => registry.getEntityComponentCount(3))
-			.toThrowError('can not retrieve component count of a non-crated entity');
+			.toThrowError('can not return component count of a non-crated entity');
 	});
 
 });
@@ -74,7 +74,7 @@ describe('Entity queries', () => {
 		static schema: ComponentSchema = { property: PropertyType.BYTE };
 	}
 
-	it('retrieve a iterator of entities that has two components', () => {
+	it('return a iterator of entities that has two components', () => {
 		const registry = new Registry([Component1, Component2]);
 		registry.createEntity();
 		registry.createEntity();
@@ -105,7 +105,7 @@ describe('Entity queries', () => {
 		expect(entityList).toStrictEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 	});
 
-	it('throw an error when retrieve a iterator of entities that has no components', () => {
+	it('throw an error when return a iterator of entities that has no components', () => {
 		const registry = new Registry([Component1, Component2]);
 
 		for (let i = 0; i < 5; i++) {
@@ -115,7 +115,7 @@ describe('Entity queries', () => {
 		}
 
 		expect(() => registry.getEntitiesIteratorWith([]).next())
-			.toThrow('no component was supplied to retrive the entity iterator');
+			.toThrow('the entity iterator need at least one component');
 	});
 
 });

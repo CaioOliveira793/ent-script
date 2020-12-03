@@ -51,22 +51,22 @@ class FullPropertyComponent {
 
 describe('Component return', () => {
 
-	it('throw an error when retrieve a component of a non-crated entity', () => {
+	it('throw an error when return a component of a non-crated entity', () => {
 		const registry = new Registry([Component]);
 
 		expect(() => registry.getComponents<[Component]>(3, [Component]))
-			.toThrowError('can not retrieve a component of a non-crated entity');
+			.toThrowError('can not return a component of a non-crated entity 3');
 	});
 
-	it('throw an error when retrieve a non-inserted component in entity', () => {
+	it('return undefined when return a non-inserted component in entity', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 
-		expect(() => registry.getComponents<[Component]>(entity, [Component]))
-			.toThrowError(`entity does not have component ${Component.name} to retrieve`);
+		expect(registry.getComponents<[Component]>(entity, [Component]))
+			.toStrictEqual([undefined]);
 	});
 
-	it('retrieve the component reference', () => {
+	it('return the component reference', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 		const compRef = registry.insertComponent<Component>(entity, Component);
