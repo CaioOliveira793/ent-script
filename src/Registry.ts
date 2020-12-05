@@ -144,12 +144,11 @@ export class Registry {
 		if (!this.entities[entity])
 			throw new Error(`can not return a component of a non-crated entity ${entity}`);
 
-		const componentsId = components.map(comp => this.keyToCompoenentId.get(comp.name) as ComponentId);
 		const componentReferenceList = [] as unknown as T;
-
-		for (const compId of componentsId) {
+		for (const comp of components) {
+			const compId = this.keyToCompoenentId.get(comp.name) as ComponentId;
 			if ((this.entities[entity].componentMask & compId.mask) !== compId.mask)
-				componentReferenceList.push(undefined);
+				throw new Error(`entity ${entity} does not have component ${comp.name} to return`);
 			else
 				componentReferenceList.push(this.pools[compId.index].getSectionRef(entity));
 		}

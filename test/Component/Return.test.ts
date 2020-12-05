@@ -58,12 +58,12 @@ describe('Component return', () => {
 			.toThrowError('can not return a component of a non-crated entity 3');
 	});
 
-	it('return undefined when return a non-inserted component in entity', () => {
+	it('throw an error when return a non-inserted component in entity', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 
-		expect(registry.getComponents<[Component]>(entity, [Component]))
-			.toStrictEqual([undefined]);
+		expect(() => registry.getComponents<[Component]>(entity, [Component]))
+			.toThrowError(`entity ${entity} does not have component ${Component.name} to return`);
 	});
 
 	it('return the component reference', () => {
