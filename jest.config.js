@@ -4,21 +4,36 @@
  */
 
 module.exports = {
-  collectCoverage: false,
-  collectCoverageFrom: [
-    './src/**/*.{js,ts}',
+	globals: {
+		'ts-jest': {
+			tsconfig: {
+				strict: true,
+				strictFunctionTypes: false,
+				noImplicitReturns: false,
+				noImplicitThis: true,
+				noImplicitAny: true,
+				strictNullChecks: true,
+				alwaysStrict: false,
+				noUnusedLocals: true,
+				noUnusedParameters: true,
+			}
+		}
+	},
+	collectCoverage: false,
+	collectCoverageFrom: [
+		'./src/**/*.{js,ts}',
 		'!./src/index.{js,ts}',
-    '!**/node_modules/**',
-    '!**/dist/**',
-  ],
-  coverageDirectory: "test/coverage",
-  coverageProvider: "v8",
-  coverageReporters: [
-    "json",
-    "text",
-    "lcov",
-  ],
-  coverageThreshold: {
+		'!**/node_modules/**',
+		'!**/dist/**',
+	],
+	coverageDirectory: "test/coverage",
+	coverageProvider: "v8",
+	coverageReporters: [
+		"json",
+		"text",
+		"lcov",
+	],
+	coverageThreshold: {
 		global: {
 			branches: 50,
 			functions: 50,
@@ -26,10 +41,10 @@ module.exports = {
 			statement: 50
 		}
 	},
-  preset: "ts-jest",
-  testEnvironment: "node",
-  testMatch: [
-    "**/tests/**/*.[jt]s?(x)",
-    "**/?(*.)+(spec|test).[tj]s?(x)"
-  ],
+	preset: "ts-jest",
+	testEnvironment: "node",
+	testMatch: [
+		"**/tests/**/*.[jt]s?(x)",
+		"**/?(*.)+(spec|test).[tj]s?(x)"
+	],
 };

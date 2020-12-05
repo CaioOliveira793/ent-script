@@ -3,6 +3,12 @@ import Registry, { ComponentSchema, PoolSettings, PropertyType } from '../../src
 const POOL_INCREASE_COUNT = 2;
 
 class Component {
+	constructor(prop1: number = 1, prop2: number = 3.1415, prop3: number = 5000) {
+		this.prop1 = prop1;
+		this.prop_2 = prop2;
+		this.Prop3 = prop3;
+	}
+
 	public prop1: number = 1;
 	public prop_2: number = 3.1415;
 	public Prop3: number = 5000;
@@ -79,11 +85,11 @@ describe('Component insertion', () => {
 		const registry = new Registry([Component]);
 		const entity = registry.createEntity();
 
-		const componentReference = registry.insertComponent<Component>(entity, Component);
+		const componentReference = registry.insertComponent<Component>(entity, Component, 120, 5.23234232, -4523);
 		expect(componentReference).toStrictEqual({
-			prop1: 1,
-			prop_2: 3.1415,
-			Prop3: 5000
+			prop1: 120,
+			prop_2: 5.23234232,
+			Prop3: -4523
 		});
 	});
 
