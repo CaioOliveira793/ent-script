@@ -12,8 +12,7 @@
 	"browser": "dist/ent-script.js",
 	"typings": "dist/index.d.ts",
 	"files": [
-		"dist",
-		"src"
+		"dist"
 	],
 	"engines": {
 		"node": ">=12"
