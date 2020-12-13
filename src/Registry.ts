@@ -1,6 +1,6 @@
 import Pool, { PoolSettings, PoolSchema, PoolInfo, PoolSectionLayout } from './Pool';
 import Reference from './Reference';
-import indexInMask from './generators/IndexInMask';
+import indexInMask from './generators/indexInMask';
 
 export type ComponentSchema = PoolSchema;
 
