@@ -8,13 +8,13 @@ export interface ChunkIterator {
 export const DEFAULT_CHUNK_SECTION_COUNT = 1024;
 
 class Chunk {
-	constructor(sectionSize: number, maxSectionCount?: number) {
+	constructor(sectionSize: number, maxSectionCount: number = DEFAULT_CHUNK_SECTION_COUNT) {
 		this.sectionSize = sectionSize;
-		this.maxSectionCount = maxSectionCount ?? DEFAULT_CHUNK_SECTION_COUNT;
+		this.sectionCount = maxSectionCount;
 
-		this.buffer = new ArrayBuffer(this.sectionSize * this.maxSectionCount);
+		this.buffer = new ArrayBuffer(this.sectionSize * this.sectionCount);
 		this.view = new DataView(this.buffer);
-		this.greaterIndexUsed = 0;
+		this.byteView = new Uint8Array(this.buffer);
 	}
 
 	public getSection = (index: number): { view: DataView, offset: number } => ({
@@ -22,21 +22,30 @@ class Chunk {
 		view: this.view
 	})
 
-	// public setSection(index: number, data: ArrayBuffer): void;
-	// public copySection(index: number): ArrayBuffer;
-	// public moveSection(fromIndex: number, toIndex: number): void;
+	public setSection = (index: number, data: ArrayBuffer): void => {
+		this.byteView.set(new Uint8Array(data), index * this.sectionSize);
+	}
 
-	public iterator = (): ChunkIterator => ({
-		offsetIterator: incrementCounter(0, this.greaterIndexUsed),
+	public copySection = (index: number): ArrayBuffer => this.buffer.slice(index * this.sectionSize, this.sectionSize);
+
+	public moveSection = (fromIndex: number, toIndex: number): void => {
+		this.byteView.set(
+			this.byteView.slice(fromIndex * this.sectionSize, fromIndex * this.sectionSize + this.sectionSize),
+			toIndex * this.sectionSize
+		);
+	}
+
+	public iterator = (initialIndex: number, limitIndex: number = this.sectionCount): ChunkIterator => ({
+		offsetIterator: incrementCounter(initialIndex, limitIndex),
 		view: this.view
 	})
 
 
 	private readonly sectionSize: number;
-	private readonly maxSectionCount: number;
+	private readonly sectionCount: number;
 	private readonly buffer: ArrayBuffer;
 	private readonly view: DataView;
-	private greaterIndexUsed: number;
+	private readonly byteView: Uint8Array;
 }
 
 
