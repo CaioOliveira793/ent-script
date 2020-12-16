@@ -33,7 +33,8 @@
 						}
 					}
 				],
-				"@typescript-eslint/prefer-optional-chain": "warn"
+				"@typescript-eslint/prefer-optional-chain": "warn",
+				"@typescript-eslint/no-non-null-assertion": "off"
 			}
 		}
 	]
