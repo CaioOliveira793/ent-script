@@ -1,5 +1,4 @@
 import Chunk, { ChunkIterator, DEFAULT_CHUNK_SECTION_COUNT } from './Chunk';
-import { Entity } from './EntTypes';
 
 
 interface ComponentInfo {
@@ -10,12 +9,11 @@ interface ComponentInfo {
 
 class Group {
 	constructor(componentsInfo: ComponentInfo[]) {
-		this.entityList = [];
-		this.entityToIndex = new Map();
+		this.idList = [];
+		this.idToIndex = new Map();
 
 		this.componentIndexOrder = [];
 		let mask = 0, componentsSize = 0;
-		
 		for (const compInfo of componentsInfo) {
 			mask |= compInfo.mask;
 			componentsSize += compInfo.size;
@@ -29,9 +27,9 @@ class Group {
 		this.freeIndex = 0;
 	}
 
-	public setSection = (entity: Entity): { view: DataView, offset: number } => {
-		this.entityList.push(entity);
-		this.entityToIndex.set(this.freeIndex, entity);
+	public setSection = (id: number): { view: DataView, offset: number } => {
+		this.idList.push(id);
+		this.idToIndex.set(this.freeIndex, id);
 
 		let chunk = this.chunkList[Math.floor(this.freeIndex / this.chunkSectionCount)];
 		if (!chunk) { // chunk is full
@@ -41,11 +39,11 @@ class Group {
 		return chunk.getSlice(this.freeIndex++ % this.chunkSectionCount);
 	}
 
-	public setMultipleSections = (entityList: Entity[], componentsData?: ArrayBuffer): void => {
+	public setMultipleSections = (idList: number[], componentsData?: ArrayBuffer): void => {
 		// TODO: use a better algorithm
-		for (const entity of entityList) {
-			this.entityList.push(entity);
-			this.entityToIndex.set(this.freeIndex, entity);
+		for (const id of idList) {
+			this.idList.push(id);
+			this.idToIndex.set(this.freeIndex, id);
 
 			let chunk = this.chunkList[Math.floor(this.freeIndex / this.chunkSectionCount)];
 			if (!chunk) { // chunk is full
@@ -58,14 +56,14 @@ class Group {
 		}
 	}
 
-	public getSection = (entity: Entity): { view: DataView, offset: number } => {
-		const index = this.entityToIndex.get(entity) as number;
+	public getSection = (id: number): { view: DataView, offset: number } => {
+		const index = this.idToIndex.get(id) as number;
 		return this.chunkList[Math.floor(index / this.chunkSectionCount)]
 			.getSlice(this.freeIndex++ % this.chunkSectionCount);
 	}
 
-	public deleteSections = (entity: Entity): void => {
-		const index = this.entityToIndex.get(entity) as number;
+	public deleteSection = (id: number): void => {
+		const index = this.idToIndex.get(id) as number;
 		const chunkIndex = Math.floor(index / this.chunkSectionCount)
 		const freeChunkIndex = Math.floor(this.freeIndex / this.chunkSectionCount);
 		const chunk = this.chunkList[chunkIndex];
@@ -78,10 +76,10 @@ class Group {
 				chunk.setSlice(index, data);
 			}
 
-			const lastEntity = this.entityList.pop() as Entity;
-			this.entityToIndex.set(lastEntity, index);
-			this.entityToIndex.delete(entity);
-			this.entityList[index] = lastEntity;
+			const lastnumber = this.idList.pop() as number;
+			this.idToIndex.set(lastnumber, index);
+			this.idToIndex.delete(id);
+			this.idList[index] = lastnumber;
 		}
 		this.freeIndex--;
 
@@ -102,9 +100,10 @@ class Group {
 		});
 	}
 
+	public getSectionCount = (): number => this.freeIndex + 1;
 	public getComponentIndexOrder = (): number[] => this.componentIndexOrder;
 	public getComponentsSize = (): number => this.chunkSectionSize;
-	// public getSectionSize = (): number => this.chunkSectionSize + entitySize;
+	// public getSectionSize = (): number => this.chunkSectionSize + idSize;
 
 	public readonly mask: number;
 
@@ -113,8 +112,8 @@ class Group {
 	private readonly chunkList: Chunk[];
 	private readonly chunkSectionSize: number;
 	private readonly chunkSectionCount: number;
-	private readonly entityToIndex: Map<Entity, number>;
-	private readonly entityList: Entity[]; // TODO: use entities insie chunks
+	private readonly idToIndex: Map<number, number>;
+	private readonly idList: number[]; // TODO: use ids inside chunks
 	private freeIndex: number;
 }
 

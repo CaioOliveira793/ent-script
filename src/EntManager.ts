@@ -61,6 +61,7 @@ class EntManager {
 		this.groupsMap = new Map();
 	}
 
+	// entity //////////////////////////////////////////////////
 	public createEntities = (entityCount = 1): Entity[] => {
 		const entityList = this.createEntitiesAndPushInList(entityCount);
 		this.emptyEntities.push(...entityList);
@@ -89,9 +90,20 @@ class EntManager {
 		return entityList;
 	}
 
+	public destroyEntities = (entities: Entity[]): void => {
+		const maskSet: Set<number> = new Set();
+		for (const entity of entities) {
+			this.recycledEntityIds.push(entity.id);
+			const group = this.groupsMap.get(entity.mask) as Group;
+			group.deleteSection(entity.id);
+			maskSet.add(entity.mask);
+		}
+		for (const mask of maskSet) {
+			if (this.groupsMap.get(mask)!.getSectionCount() === 0)
+				this.groupsMap.delete(mask);
+		}
+	}
 
-	// public destroyEntity(entity: Entity): void;
-	// public destroyEntityByList(entities: Entity[]): void;
 	// public destroyEntityByQuery(entityQuery: EntityQuery): void;
 
 	// public isValid(entity: Entity): void;
@@ -119,7 +131,7 @@ class EntManager {
 	////////////////////////////////////////////////////////////
 	// private /////////////////////////////////////////////////
 
-	private createEntitiesAndPushInList = (count = 1): Entity[] => {
+	private createEntityIds = (count = 1): number[] => {
 		if (count === 1) {
 			const entity = this.recycledEntities.pop() ?? this.nextEntity++;
 			this.entityList.push(entity);
@@ -181,12 +193,11 @@ class EntManager {
 	private readonly componentConstructorMap: Map<string, ComponentConstructor<EntComponentTypes>>;
 
 	// entity data
-	private readonly entityList: Entity[];
-	private readonly recycledEntities: Entity[];
-	private nextEntity: number;
+	private readonly recycledEntityIds: number[];
+	private nextEntityId: number;
 
 	// groups
-	private readonly emptyEntities: Entity[];
+	private readonly emptyEntityIds: number[];
 	private readonly groupsMap: Map<number, Group>;
 }
 
