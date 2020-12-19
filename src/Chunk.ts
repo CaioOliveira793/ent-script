@@ -17,18 +17,18 @@ class Chunk {
 		this.byteView = new Uint8Array(this.buffer);
 	}
 
-	public getSection = (index: number): { view: DataView, offset: number } => ({
+	public getSlice = (index: number): { view: DataView, offset: number } => ({
 		offset: index * this.sectionSize,
 		view: this.view
 	})
 
-	public setSection = (index: number, data: ArrayBuffer): void => {
+	public setSlice = (index: number, data: ArrayBuffer): void => {
 		this.byteView.set(new Uint8Array(data), index * this.sectionSize);
 	}
 
-	public copySection = (index: number): ArrayBuffer => this.buffer.slice(index * this.sectionSize, this.sectionSize);
+	public copySlice = (index: number): ArrayBuffer => this.buffer.slice(index * this.sectionSize, this.sectionSize);
 
-	public moveSection = (fromIndex: number, toIndex: number): void => {
+	public moveSlice = (fromIndex: number, toIndex: number): void => {
 		this.byteView.set(
 			this.byteView.slice(fromIndex * this.sectionSize, fromIndex * this.sectionSize + this.sectionSize),
 			toIndex * this.sectionSize
