@@ -41,7 +41,11 @@ export interface Entity {
 	readonly mask: number;
 }
 
-// export type EntityQuery = number;
+export interface ComponentQuery {
+	readonly name: string;
+	readonly readonly: boolean;
+	readonly optional: boolean;
+}
 
 // export type CommandManager = number;
 

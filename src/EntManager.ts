@@ -1,7 +1,7 @@
 import Group from "./Group";
 import Reference from "./Reference";
-import { Entity, ComponentConstructor, EntComponentTypes } from './EntTypes';
 import indexInMask from "./generators/indexInMask";
+import { Entity, ComponentConstructor, EntComponentTypes } from './EntTypes';
 
 
 export interface ComponentMapProps {
@@ -53,23 +53,22 @@ class EntManager {
 			index++;
 		}
 
-		this.entityList = [];
-		this.recycledEntities = [];
-		this.nextEntity = 0;
+		this.recycledEntityIds = [];
+		this.nextEntityId = 0;
 
-		this.emptyEntities = [];
+		this.emptyEntityIds = [];
 		this.groupsMap = new Map();
 	}
 
 	// entity //////////////////////////////////////////////////
 	public createEntities = (entityCount = 1): Entity[] => {
-		const entityList = this.createEntitiesAndPushInList(entityCount);
-		this.emptyEntities.push(...entityList);
-		return entityList;
+		const entityIdList = this.createEntityIds(entityCount);
+		this.emptyEntityIds.push(...entityIdList);
+		return entityIdList.map(id => ({ id, mask: 0 }));
 	}
 
 	public createEntitiesWithComponents = (componentsConstructor: ComponentList, entityCount = 1): Entity[] => {
-		const entityList = this.createEntitiesAndPushInList(entityCount);
+		const entityIdList = this.createEntityIds(entityCount);
 
 		// TODO: handle shared, tag, blob components
 		let mask = 0;
@@ -86,8 +85,8 @@ class EntManager {
 			refsList.push(this.refsMap.get(componentName) as Reference<EntComponentTypes>);
 		}
 		const componentsDataBuffer = this.createComponentData(refsList, componentsDataList, group.getComponentsSize());
-		group.setMultipleSections(entityList, componentsDataBuffer);
-		return entityList;
+		group.setMultipleSections(entityIdList, componentsDataBuffer);
+		return entityIdList.map(id => ({ id, mask: 0 }));
 	}
 
 	public destroyEntities = (entities: Entity[]): void => {
@@ -106,11 +105,29 @@ class EntManager {
 
 	// public destroyEntityByQuery(entityQuery: EntityQuery): void;
 
-	// public isValid(entity: Entity): void;
-	// public hasComponents(entity: Entity, components: ComponentConstructor<unknown>[]): boolean;
-	// public getComponentCount(entity: Entity): void;
-	// public getEntityMask(entity: Entity): number;
+	public isValidEntity = (entity: Entity): boolean =>
+		(this.nextEntityId >= entity.id || this.recycledEntityIds.includes(entity.id)) ? false : true;
 
+	public hasComponents = (entity: Entity, componentsNames: string[]): boolean[] => {
+		const hasComponentList = [];
+		for (const component of componentsNames) {
+			const mask = this.componentsMap.get(component)!.mask;
+			hasComponentList.push((entity.mask & mask) === mask);
+		}
+		return hasComponentList;
+	}
+
+	public getComponentCount = (entity: Entity): number => {
+		let mask = entity.mask, count = 0;
+		while (mask !== 0) {
+			if ((mask & 1) === 1) count++;
+			mask >>= 1;
+		}
+		return count;
+	}
+
+
+	// component ///////////////////////////////////////////////
 	// public addComponentsInEntity(entities: Entity[], components: ComponentConstructor<unknown>[]): void;
 	// public addComponentsInEntityQuery(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
@@ -133,19 +150,17 @@ class EntManager {
 
 	private createEntityIds = (count = 1): number[] => {
 		if (count === 1) {
-			const entity = this.recycledEntities.pop() ?? this.nextEntity++;
-			this.entityList.push(entity);
-			return [entity];
+			const id = this.recycledEntityIds.pop() ?? this.nextEntityId++;
+			return [id];
 		}
 
 		const createdEntitiesList = [];
-		const nextEntityStopValue = count + this.nextEntity - this.recycledEntities.length;
-		while (this.nextEntity < nextEntityStopValue)
-			createdEntitiesList.push(this.nextEntity++);
-		createdEntitiesList.push(...this.recycledEntities.slice(0, count));
-		this.recycledEntities.length = Math.max(0, this.recycledEntities.length - count);
+		const nextEntityIdStopValue = count + this.nextEntityId - this.recycledEntityIds.length;
+		while (this.nextEntityId < nextEntityIdStopValue)
+			createdEntitiesList.push(this.nextEntityId++);
+		createdEntitiesList.push(...this.recycledEntityIds.slice(0, count));
+		this.recycledEntityIds.length = Math.max(0, this.recycledEntityIds.length - count);
 
-		this.entityList.push(...createdEntitiesList);
 		return createdEntitiesList;
 	}
 
