@@ -117,13 +117,14 @@ export class Reference<T> {
 					break;
 			}
 		}
+		Object.seal(this.ref);
 	}
 
 	public get = (): T => this.ref;
 	public getSize = (): number => this.size;
 	public getLayout = (): ReferenceLayout[] => this.layout;
 
-	public updateView = (view: DataView): void => { this.view = view; }
+	public updateView = (view: DataView, offset = 0): void => { this.view = view; this.offset = offset }
 	public updateOffset = (offset: number): void => { this.offset = offset; }
 
 

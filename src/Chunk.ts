@@ -26,7 +26,8 @@ class Chunk {
 		this.byteView.set(new Uint8Array(data), index * this.sectionSize);
 	}
 
-	public copySlice = (index: number): ArrayBuffer => this.buffer.slice(index * this.sectionSize, this.sectionSize);
+	public copySlice = (index: number): ArrayBuffer =>
+		this.buffer.slice(index * this.sectionSize, this.sectionSize);
 
 	public moveSlice = (fromIndex: number, toIndex: number): void => {
 		this.byteView.set(

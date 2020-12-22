@@ -17,7 +17,7 @@ export interface ComponentListProps {
 
 
 export interface ComponentList {
-	[componentName: string]: [...unknown[]];
+	[componentName: string]: unknown[];
 }
 
 export interface EntManagerExposedData {
@@ -53,32 +53,39 @@ class EntManager {
 			index++;
 		}
 
-		this.recycledEntityIds = [];
+		this.entityMaskList = [];
+		this.recycledEntityIdList = [];
 		this.nextEntityId = 0;
 
-		this.emptyEntityIds = [];
+		this.emptyEntityIdList = [];
 		this.groupsMap = new Map();
 	}
 
 	// entity //////////////////////////////////////////////////
 	public createEntities = (entityCount = 1): Entity[] => {
 		const entityIdList = this.createEntityIds(entityCount);
-		this.emptyEntityIds.push(...entityIdList);
+		for (const entity of entityIdList) {
+			this.entityMaskList[entity] = { mask: 0 };
+		}
+		this.emptyEntityIdList.push(...entityIdList);
 		return entityIdList.map(id => ({ id, mask: 0 }));
 	}
 
 	public createEntitiesWithComponents = (componentsConstructor: ComponentList, entityCount = 1): Entity[] => {
-		const entityIdList = this.createEntityIds(entityCount);
-
 		// TODO: handle shared, tag, blob components
 		let mask = 0;
 		for (const component in componentsConstructor)
 			mask |= this.componentsMap.get(component)!.mask;
 
-		const group = this.returnOrCreateGroup(mask);
+		const entityIdList = this.createEntityIds(entityCount),
+			group = this.returnOrCreateGroup(mask),
+			componentsDataList = [],
+			refsList = [];
+		
+		for (const entity of entityIdList) {
+			this.entityMaskList[entity] = { mask };
+		}
 
-		const componentsDataList = [];
-		const refsList = [];
 		for (const componentName in componentsConstructor) {
 			const constructor = this.componentConstructorMap.get(componentName) as ComponentConstructor<EntComponentTypes>;
 			componentsDataList.push(new constructor(...componentsConstructor[componentName]));
@@ -86,16 +93,18 @@ class EntManager {
 		}
 		const componentsDataBuffer = this.createComponentData(refsList, componentsDataList, group.getComponentsSize());
 		group.setMultipleSections(entityIdList, componentsDataBuffer);
-		return entityIdList.map(id => ({ id, mask: 0 }));
+		return entityIdList.map(id => ({ id, mask }));
 	}
 
 	public destroyEntities = (entities: Entity[]): void => {
 		const maskSet: Set<number> = new Set();
 		for (const entity of entities) {
-			this.recycledEntityIds.push(entity.id);
-			const group = this.groupsMap.get(entity.mask) as Group;
+			this.recycledEntityIdList.push(entity.id);
+			const mask = this.entityMaskList[entity.id].mask;
+			const group = this.groupsMap.get(mask) as Group;
 			group.deleteSection(entity.id);
-			maskSet.add(entity.mask);
+			maskSet.add(mask);
+			this.entityMaskList[entity.id] = undefined as unknown as { mask: number };
 		}
 		for (const mask of maskSet) {
 			if (this.groupsMap.get(mask)!.getSectionCount() === 0)
@@ -105,20 +114,25 @@ class EntManager {
 
 	// public destroyEntityByQuery(entityQuery: EntityQuery): void;
 
-	public isValidEntity = (entity: Entity): boolean =>
-		(this.nextEntityId >= entity.id || this.recycledEntityIds.includes(entity.id)) ? false : true;
+	
+	// entity utils ////////////////////////////////////////////
+	public isExistentEntity = (entity: Entity): boolean =>
+		!(this.nextEntityId >= entity.id || this.recycledEntityIdList.includes(entity.id));
 
-	public hasComponents = (entity: Entity, componentsNames: string[]): boolean[] => {
+	public isValidEntity = (entity: Entity): boolean =>
+		(this.isExistentEntity(entity) && entity.mask === this.entityMaskList[entity.id].mask);
+
+	public hasComponents = (entity: Entity, componentsName: string[]): boolean[] => {
 		const hasComponentList = [];
-		for (const component of componentsNames) {
+		for (const component of componentsName) {
 			const mask = this.componentsMap.get(component)!.mask;
-			hasComponentList.push((entity.mask & mask) === mask);
+			hasComponentList.push((this.entityMaskList[entity.id].mask & mask) === mask);
 		}
 		return hasComponentList;
 	}
 
 	public getComponentCount = (entity: Entity): number => {
-		let mask = entity.mask, count = 0;
+		let mask = this.entityMaskList[entity.id].mask, count = 0;
 		while (mask !== 0) {
 			if ((mask & 1) === 1) count++;
 			mask >>= 1;
@@ -128,15 +142,50 @@ class EntManager {
 
 
 	// component ///////////////////////////////////////////////
-	// public addComponentsInEntity(entities: Entity[], components: ComponentConstructor<unknown>[]): void;
+	public addComponentsInEntities = (entities: Entity[], componentsConstructor: ComponentList): void => {
+		const addedComponentsIndex = [];
+		let mask = 0;
+		for (const component in componentsConstructor) {
+			mask |= this.componentsMap.get(component)!.mask;
+			addedComponentsIndex.push()
+		}
+
+		for (const entity of entities) {
+			const oldMask = this.entityMaskList[entity.id].mask;
+			const newMask = this.entityMaskList[entity.id].mask |= mask;
+
+			const oldGroup = this.groupsMap.get(oldMask) as Group,
+				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
+				newGroup = this.returnOrCreateGroup(newMask);
+
+			oldGroup.deleteSection(entity.id);
+			const { view, offset: chunkOffset, remainingOrderedComponentInfo } = newGroup.setSectionData(
+				entity.id,
+				oldGroup.getOrderedComponentInfo(),
+				oldComponentDataView
+			);
+
+			for (const componentInfo of remainingOrderedComponentInfo) {
+				const componentName = this.componentList[componentInfo.index].name,
+					constructor = this.componentConstructorMap
+						.get(componentName) as ComponentConstructor<EntComponentTypes>,
+					component = new constructor(...componentsConstructor[componentName]) as { [key: string]: unknown },
+					ref = this.refsMap.get(componentName) as Reference<{ [key: string]: unknown }>;
+
+				ref.updateView(view, chunkOffset + componentInfo.offset);
+				const componentRef = ref.get();
+				for (const propName in componentRef)
+					componentRef[propName] = component[propName];
+			}
+		}
+	}
+
 	// public addComponentsInEntityQuery(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
-	// // public addSharedComponent(entity: Entity, components: ComponentConstructor<unknown>[]): void;
 	// // public addSharedComponent(entities: Entity[], components: ComponentConstructor<unknown>[]): void;
 	// // public addSharedComponent(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
-	// public removeComponentsInEntity(entity: Entity, components: ComponentConstructor<unknown>[]): void;
-	// public removeComponentsInEntityList(entities: Entity[], components: ComponentConstructor<unknown>[]): void;
+	// public removeComponentsInEntities = (entities: Entity[], componentsName: string[]): void => {}
 	// public removeComponentsInEntityQuery(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
 	// public setGroup(entity: Entity, Group: GroupType): void;
@@ -150,16 +199,16 @@ class EntManager {
 
 	private createEntityIds = (count = 1): number[] => {
 		if (count === 1) {
-			const id = this.recycledEntityIds.pop() ?? this.nextEntityId++;
+			const id = this.recycledEntityIdList.pop() ?? this.nextEntityId++;
 			return [id];
 		}
 
 		const createdEntitiesList = [];
-		const nextEntityIdStopValue = count + this.nextEntityId - this.recycledEntityIds.length;
+		const nextEntityIdStopValue = count + this.nextEntityId - this.recycledEntityIdList.length;
 		while (this.nextEntityId < nextEntityIdStopValue)
 			createdEntitiesList.push(this.nextEntityId++);
-		createdEntitiesList.push(...this.recycledEntityIds.slice(0, count));
-		this.recycledEntityIds.length = Math.max(0, this.recycledEntityIds.length - count);
+		createdEntitiesList.push(...this.recycledEntityIdList.slice(0, count));
+		this.recycledEntityIdList.length = Math.max(0, this.recycledEntityIdList.length - count);
 
 		return createdEntitiesList;
 	}
@@ -173,10 +222,9 @@ class EntManager {
 
 		let offset = 0;
 		for (let i = 0; i < refs.length; i++) {
-			refs[i].updateView(view);
-			refs[i].updateOffset(offset);
+			refs[i].updateView(view, offset);
 			const componentRef = refs[i].get();
-			for (const prop in componentsData[i])
+			for (const prop in componentRef)
 				componentRef[prop] = componentsData[i][prop];
 			offset += refs[i].getSize();
 		}
@@ -208,11 +256,12 @@ class EntManager {
 	private readonly componentConstructorMap: Map<string, ComponentConstructor<EntComponentTypes>>;
 
 	// entity data
-	private readonly recycledEntityIds: number[];
+	private readonly entityMaskList: { mask: number }[];
+	private readonly recycledEntityIdList: number[];
 	private nextEntityId: number;
 
 	// groups
-	private readonly emptyEntityIds: number[];
+	private readonly emptyEntityIdList: number[];
 	private readonly groupsMap: Map<number, Group>;
 }
 

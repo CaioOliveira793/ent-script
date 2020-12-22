@@ -7,17 +7,25 @@ interface ComponentInfo {
 	size: number;
 }
 
+interface GroupComponentInfo extends ComponentInfo {
+	offset: number;
+}
+
 class Group {
 	constructor(componentsInfo: ComponentInfo[]) {
 		this.idList = [];
 		this.idToIndex = new Map();
 
-		this.componentIndexOrder = [];
+		this.orderedComponentInfo = [];
 		let mask = 0, componentsSize = 0;
 		for (const compInfo of componentsInfo) {
+			// TODO: sort the order by index
+			this.orderedComponentInfo.push({
+				...compInfo,
+				offset: componentsSize
+			});
 			mask |= compInfo.mask;
 			componentsSize += compInfo.size;
-			this.componentIndexOrder.push(compInfo.index); // TODO: sort the order by index
 		}
 		this.mask = mask;
 		this.chunkSectionSize = componentsSize;
@@ -29,44 +37,74 @@ class Group {
 
 	public setSection = (id: number): { view: DataView, offset: number } => {
 		this.idList.push(id);
-		this.idToIndex.set(this.freeIndex, id);
+		this.idToIndex.set(id, this.freeIndex);
 
-		let chunk = this.chunkList[Math.floor(this.freeIndex / this.chunkSectionCount)];
-		if (!chunk) { // chunk is full
-			chunk = new Chunk(this.chunkSectionSize, this.chunkSectionCount);
-			this.chunkList.push(chunk);
+		return this.returnOrCreateChunk(this.freeIndex / this.chunkSectionCount).
+			getSlice(this.freeIndex++ % this.chunkSectionCount);
+	}
+
+	public setSectionData = (id: number, orderedComponentInfo: ComponentInfo[], componentData: ArrayBuffer):
+	{ view: DataView, offset: number, remainingOrderedComponentInfo: GroupComponentInfo[] } => {
+		this.idList.push(id);
+		this.idToIndex.set(id, this.freeIndex);
+
+		const chunk = this.returnOrCreateChunk(this.freeIndex / this.chunkSectionCount),
+			index = this.freeIndex++ % this.chunkSectionCount,
+			sectionDataView = new Uint8Array(this.chunkSectionSize),
+			componentDataView = new Uint8Array(componentData),
+			remainingOrderedComponentInfo = [...this.orderedComponentInfo];
+
+		let i = 0, j = 0;
+		while (i < orderedComponentInfo.length && j < this.orderedComponentInfo.length) {
+			if (orderedComponentInfo[i].index >= this.orderedComponentInfo[j].index) j++;
+			else if (orderedComponentInfo[i].index <= this.orderedComponentInfo[j].index) i++;
+			else if (orderedComponentInfo[i].index === this.orderedComponentInfo[j].index) {
+				sectionDataView.set(componentDataView.slice(
+					this.orderedComponentInfo[j].offset,
+					this.orderedComponentInfo[j].size
+				));
+				remainingOrderedComponentInfo.splice(i++, 1);
+				j++;
+			}
 		}
-		return chunk.getSlice(this.freeIndex++ % this.chunkSectionCount);
+		chunk.setSlice(index, sectionDataView);
+		return {
+			...chunk.getSlice(index),
+			remainingOrderedComponentInfo
+		};
 	}
 
 	public setMultipleSections = (idList: number[], componentsData?: ArrayBuffer): void => {
 		// TODO: use a better algorithm
 		for (const id of idList) {
 			this.idList.push(id);
-			this.idToIndex.set(this.freeIndex, id);
+			this.idToIndex.set(id, this.freeIndex);
 
-			let chunk = this.chunkList[Math.floor(this.freeIndex / this.chunkSectionCount)];
-			if (!chunk) { // chunk is full
-				chunk = new Chunk(this.chunkSectionSize, this.chunkSectionCount);
-				this.chunkList.push(chunk);
-			}
+			const chunk = this.returnOrCreateChunk(this.freeIndex / this.chunkSectionCount);
 			if (componentsData)
 				chunk.setSlice(this.freeIndex % this.chunkSectionCount, componentsData);
 			this.freeIndex++;
 		}
 	}
 
-	public getSection = (id: number): { view: DataView, offset: number } => {
+	public getSectionView = (id: number): { view: DataView, offset: number } => {
 		const index = this.idToIndex.get(id) as number;
 		return this.chunkList[Math.floor(index / this.chunkSectionCount)]
 			.getSlice(this.freeIndex++ % this.chunkSectionCount);
 	}
 
-	public deleteSection = (id: number): void => {
+	public getSectionData = (id: number): ArrayBuffer => {
 		const index = this.idToIndex.get(id) as number;
-		const chunkIndex = Math.floor(index / this.chunkSectionCount)
-		const freeChunkIndex = Math.floor(this.freeIndex / this.chunkSectionCount);
-		const chunk = this.chunkList[chunkIndex];
+		return this.chunkList[Math.floor(index / this.chunkSectionCount)]
+			.copySlice(this.freeIndex++ % this.chunkSectionCount);
+	}
+
+	// TODO: add version that returns the data before delete
+	public deleteSection = (id: number): void => {
+		const index = this.idToIndex.get(id) as number,
+			chunkIndex = Math.floor(index / this.chunkSectionCount),
+			freeChunkIndex = Math.floor(this.freeIndex / this.chunkSectionCount),
+			chunk = this.chunkList[chunkIndex];
 
 		if (this.freeIndex - 1 !== index) {
 			if (chunkIndex === freeChunkIndex) {
@@ -101,14 +139,23 @@ class Group {
 	}
 
 	public getSectionCount = (): number => this.freeIndex + 1;
-	public getComponentIndexOrder = (): number[] => this.componentIndexOrder;
+	public getOrderedComponentInfo = (): GroupComponentInfo[] => this.orderedComponentInfo;
 	public getComponentsSize = (): number => this.chunkSectionSize;
 	// public getSectionSize = (): number => this.chunkSectionSize + idSize;
 
 	public readonly mask: number;
 
 
-	private readonly componentIndexOrder: number[];
+	private returnOrCreateChunk = (index: number): Chunk => {
+		let chunk = this.chunkList[index];
+		if (!chunk) {
+			chunk = new Chunk(this.chunkSectionSize, this.chunkSectionCount);
+			this.chunkList.push(chunk);
+		}
+		return chunk;
+	}
+
+	private readonly orderedComponentInfo: GroupComponentInfo[];
 	private readonly chunkList: Chunk[];
 	private readonly chunkSectionSize: number;
 	private readonly chunkSectionCount: number;
