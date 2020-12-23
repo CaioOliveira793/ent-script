@@ -143,16 +143,13 @@ class EntManager {
 
 	// component ///////////////////////////////////////////////
 	public addComponentsInEntities = (entities: Entity[], componentsConstructor: ComponentList): void => {
-		const addedComponentsIndex = [];
-		let mask = 0;
-		for (const component in componentsConstructor) {
-			mask |= this.componentsMap.get(component)!.mask;
-			addedComponentsIndex.push()
-		}
+		let adiccionMask = 0;
+		for (const component in componentsConstructor)
+			adiccionMask |= this.componentsMap.get(component)!.mask;
 
 		for (const entity of entities) {
 			const oldMask = this.entityMaskList[entity.id].mask;
-			const newMask = this.entityMaskList[entity.id].mask |= mask;
+			const newMask = this.entityMaskList[entity.id].mask |= adiccionMask;
 
 			const oldGroup = this.groupsMap.get(oldMask) as Group,
 				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
@@ -185,7 +182,29 @@ class EntManager {
 	// // public addSharedComponent(entities: Entity[], components: ComponentConstructor<unknown>[]): void;
 	// // public addSharedComponent(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
-	// public removeComponentsInEntities = (entities: Entity[], componentsName: string[]): void => {}
+	public removeComponentsInEntities = (entities: Entity[], componentsName: string[]): void => {
+		let permissionMask = 0;
+		for (const component in componentsName)
+			permissionMask |= this.componentsMap.get(component)!.mask;
+		permissionMask = ~permissionMask;
+
+		for (const entity of entities) {
+			const oldMask = this.entityMaskList[entity.id].mask;
+			const newMask = this.entityMaskList[entity.id].mask &= permissionMask;
+
+			const oldGroup = this.groupsMap.get(oldMask) as Group,
+				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
+				newGroup = this.returnOrCreateGroup(newMask);
+
+			oldGroup.deleteSection(entity.id);
+			newGroup.setSectionData(
+				entity.id,
+				oldGroup.getOrderedComponentInfo(),
+				oldComponentDataView
+			);
+		}
+	}
+
 	// public removeComponentsInEntityQuery(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
 	// public setGroup(entity: Entity, Group: GroupType): void;
