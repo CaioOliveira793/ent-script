@@ -1,4 +1,4 @@
-import Group from "./Group";
+import Group, { GroupComponentInfo } from "./Group";
 import Reference from "./Reference";
 import indexInMask from "./generators/indexInMask";
 import { Entity, ComponentConstructor, EntComponentTypes } from './EntTypes';
@@ -101,10 +101,11 @@ class EntManager {
 		for (const entity of entities) {
 			this.recycledEntityIdList.push(entity.id);
 			const mask = this.entityMaskList[entity.id].mask;
+			this.entityMaskList[entity.id] = undefined as unknown as { mask: number };
+			if (mask === 0) continue;
 			const group = this.groupsMap.get(mask) as Group;
 			group.deleteSection(entity.id);
 			maskSet.add(mask);
-			this.entityMaskList[entity.id] = undefined as unknown as { mask: number };
 		}
 		for (const mask of maskSet) {
 			if (this.groupsMap.get(mask)!.getSectionCount() === 0)
@@ -116,8 +117,7 @@ class EntManager {
 
 	
 	// entity utils ////////////////////////////////////////////
-	public isExistentEntity = (entity: Entity): boolean =>
-		!(this.nextEntityId >= entity.id || this.recycledEntityIdList.includes(entity.id));
+	public isExistentEntity = (entity: Entity): boolean => this.entityMaskList[entity.id] != undefined;
 
 	public isValidEntity = (entity: Entity): boolean =>
 		(this.isExistentEntity(entity) && entity.mask === this.entityMaskList[entity.id].mask);
@@ -144,32 +144,47 @@ class EntManager {
 	// component ///////////////////////////////////////////////
 	public addComponentsInEntities = (entities: Entity[], componentsConstructor: ComponentList): void => {
 		let adiccionMask = 0;
-		for (const component in componentsConstructor)
-			adiccionMask |= this.componentsMap.get(component)!.mask;
+		for (const name in componentsConstructor)
+			adiccionMask |= this.componentsMap.get(name)!.mask;
 
 		for (const entity of entities) {
 			const oldMask = this.entityMaskList[entity.id].mask;
 			const newMask = this.entityMaskList[entity.id].mask |= adiccionMask;
+			console.log(`entity ${entity.id}: ${newMask.toString(2)}`);
 
-			const oldGroup = this.groupsMap.get(oldMask) as Group,
-				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
-				newGroup = this.returnOrCreateGroup(newMask);
+			let newSectionData = {} as {
+				view: DataView;
+				offset: number;
+				remainingOrderedComponentInfo: GroupComponentInfo[];
+			};
 
-			oldGroup.deleteSection(entity.id);
-			const { view, offset: chunkOffset, remainingOrderedComponentInfo } = newGroup.setSectionData(
-				entity.id,
-				oldGroup.getOrderedComponentInfo(),
-				oldComponentDataView
-			);
+			if (oldMask === 0) {
+				const newGroup = this.returnOrCreateGroup(newMask);
+				newSectionData = {
+					...newGroup.setSection(entity.id),
+					remainingOrderedComponentInfo: newGroup.getOrderedComponentInfo()
+				};
+			} else {
+				const oldGroup = this.groupsMap.get(oldMask) as Group,
+					oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
+					newGroup = this.returnOrCreateGroup(newMask);
 
-			for (const componentInfo of remainingOrderedComponentInfo) {
+				oldGroup.deleteSection(entity.id);
+				newSectionData = newGroup.setSectionData(
+					entity.id,
+					oldGroup.getOrderedComponentInfo(),
+					oldComponentDataView
+				);
+			}
+
+			for (const componentInfo of newSectionData.remainingOrderedComponentInfo) {
 				const componentName = this.componentList[componentInfo.index].name,
 					constructor = this.componentConstructorMap
 						.get(componentName) as ComponentConstructor<EntComponentTypes>,
 					component = new constructor(...componentsConstructor[componentName]) as { [key: string]: unknown },
 					ref = this.refsMap.get(componentName) as Reference<{ [key: string]: unknown }>;
 
-				ref.updateView(view, chunkOffset + componentInfo.offset);
+				ref.updateView(newSectionData.view, newSectionData.offset + componentInfo.offset);
 				const componentRef = ref.get();
 				for (const propName in componentRef)
 					componentRef[propName] = component[propName];
@@ -184,12 +199,13 @@ class EntManager {
 
 	public removeComponentsInEntities = (entities: Entity[], componentsName: string[]): void => {
 		let permissionMask = 0;
-		for (const component in componentsName)
-			permissionMask |= this.componentsMap.get(component)!.mask;
+		for (const name of componentsName)
+			permissionMask |= this.componentsMap.get(name)!.mask;
 		permissionMask = ~permissionMask;
 
 		for (const entity of entities) {
 			const oldMask = this.entityMaskList[entity.id].mask;
+			if (oldMask === 0) continue;
 			const newMask = this.entityMaskList[entity.id].mask &= permissionMask;
 
 			const oldGroup = this.groupsMap.get(oldMask) as Group,

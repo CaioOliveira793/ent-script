@@ -7,7 +7,7 @@ interface ComponentInfo {
 	size: number;
 }
 
-interface GroupComponentInfo extends ComponentInfo {
+export interface GroupComponentInfo extends ComponentInfo {
 	offset: number;
 }
 
@@ -56,8 +56,8 @@ class Group {
 
 		let i = 0, j = 0;
 		while (i < orderedComponentInfo.length && j < this.orderedComponentInfo.length) {
-			if (orderedComponentInfo[i].index >= this.orderedComponentInfo[j].index) j++;
-			else if (orderedComponentInfo[i].index <= this.orderedComponentInfo[j].index) i++;
+			if (orderedComponentInfo[i].index > this.orderedComponentInfo[j].index) j++;
+			else if (orderedComponentInfo[i].index < this.orderedComponentInfo[j].index) i++;
 			else if (orderedComponentInfo[i].index === this.orderedComponentInfo[j].index) {
 				sectionDataView.set(componentDataView.slice(
 					this.orderedComponentInfo[j].offset,

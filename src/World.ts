@@ -2,13 +2,13 @@ import EntManager from './EntManager';
 import { ComponentConstructor, EntComponent, EntSharedComponent } from './EntTypes';
 
 
-interface WorldConfig {
-	shared: boolean;
-}
+// interface WorldConfig {
+// 	shared: boolean;
+// }
 
 
 class World {
-	constructor(components: ComponentConstructor<EntComponent | EntSharedComponent>[], config: WorldConfig) {
+	constructor(components: ComponentConstructor<EntComponent | EntSharedComponent>[], /* config: WorldConfig */) {
 
 
 		this.EntManager = new EntManager(components, /* allocator */);

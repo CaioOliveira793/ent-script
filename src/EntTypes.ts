@@ -36,16 +36,19 @@ export interface ComponentConstructor<T> extends Function {
 	schema: ReferenceSchema;
 }
 
-export interface Entity {
-	readonly id: number;
-	readonly mask: number;
-}
+export type ComponentSchema = ReferenceSchema;
 
 export interface ComponentQuery {
 	readonly name: string;
 	readonly readonly: boolean;
 	readonly optional: boolean;
 }
+
+export interface Entity {
+	readonly id: number;
+	readonly mask: number;
+}
+
 
 // export type CommandManager = number;
 
