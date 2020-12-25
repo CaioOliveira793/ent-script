@@ -1,8 +1,8 @@
-import Registry, { ComponentSchema, PropertyType } from '../src/index';
+import Registry, { ComponentSchema, PropType } from '../src/index';
 
 
 class Component {
-	static schema: ComponentSchema = { property: PropertyType.BYTE };
+	static schema: ComponentSchema = { property: PropType.BYTE };
 }
 
 describe('Entity', () => {
@@ -68,10 +68,10 @@ describe('Entity', () => {
 
 describe('Entity queries', () => {
 	class Component1 {
-		static schema: ComponentSchema = { property: PropertyType.BYTE };
+		static schema: ComponentSchema = { property: PropType.BYTE };
 	}
 	class Component2 {
-		static schema: ComponentSchema = { property: PropertyType.BYTE };
+		static schema: ComponentSchema = { property: PropType.BYTE };
 	}
 
 	it('return a iterator of entities that has two components', () => {

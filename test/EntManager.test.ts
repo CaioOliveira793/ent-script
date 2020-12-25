@@ -1,5 +1,5 @@
 import World from '../src/World';
-import PropertyType from '../src/PropertyTypes';
+import PropertyType from '../src/PropType';
 import { ComponentSchema, EntComponent } from '../src/EntTypes';
 
 

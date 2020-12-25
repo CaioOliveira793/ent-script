@@ -1,4 +1,4 @@
-import Registry, { ComponentSchema, PoolSettings, PropertyType } from '../../src/index';
+import Registry, { ComponentSchema, PoolSettings, PropType } from '../../src/index';
 
 const POOL_INCREASE_COUNT = 2;
 
@@ -9,9 +9,9 @@ class Component {
 
 	public static poolSettings: PoolSettings = { initialCount: 2, increaseCount: POOL_INCREASE_COUNT };
 	public static schema: ComponentSchema = {
-		prop1: PropertyType.BYTE,
-		prop_2: PropertyType.DOUBLE,
-		Prop3: PropertyType.INT_32,
+		prop1: PropType.BYTE,
+		prop_2: PropType.DOUBLE,
+		Prop3: PropType.INT_32,
 	};
 }
 
@@ -33,9 +33,9 @@ class ComponentWithCustomAllocator {
 		}
 	};
 	public static schema: ComponentSchema = {
-		prop1: PropertyType.BYTE,
-		prop_2: PropertyType.DOUBLE,
-		Prop3: PropertyType.INT_32,
+		prop1: PropType.BYTE,
+		prop_2: PropType.DOUBLE,
+		Prop3: PropType.INT_32,
 	};
 }
 

@@ -1,4 +1,4 @@
-export const enum PropertyType {
+export const enum PropType {
 	U_INT_8        = 'U_8',
 	BYTE           = U_INT_8,
 	U_INT_16       = 'U_16',
@@ -18,7 +18,7 @@ export const enum PropertyType {
 	DOUBLE         = FLOAT_64,
 }
 
-export enum PropertyTypeToSize {
+export enum PropSize {
 	U_8  = 1,
 	U_16 = 2,
 	U_32 = 4,
@@ -33,4 +33,4 @@ export enum PropertyTypeToSize {
 	F_64 = 8,
 }
 
-export default PropertyType;
+export default PropType;

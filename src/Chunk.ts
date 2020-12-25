@@ -26,14 +26,20 @@ class Chunk {
 		this.byteView.set(new Uint8Array(data), index * this.sectionSize);
 	}
 
-	public copySlice = (index: number): ArrayBuffer =>
-		this.buffer.slice(index * this.sectionSize, this.sectionSize);
+	public copySlice = (index: number): { view: DataView, offset: number, slice: ArrayBuffer } => {
+		return {
+			view: this.view,
+			offset: index * this.sectionSize,
+			slice: this.buffer.slice(index * this.sectionSize, this.sectionSize)
+		};
+	}
 
-	public moveSlice = (fromIndex: number, toIndex: number): void => {
+	public moveSlice = (fromIndex: number, toIndex: number): { view: DataView, offset: number } => {
 		this.byteView.set(
 			this.byteView.slice(fromIndex * this.sectionSize, fromIndex * this.sectionSize + this.sectionSize),
 			toIndex * this.sectionSize
 		);
+		return { view: this.view, offset: fromIndex * this.sectionSize };
 	}
 
 	public iterator = (initialIndex: number, limitIndex: number = this.sectionCount): ChunkIterator => ({

@@ -1,6 +1,6 @@
 import Registry, {
 	ComponentSchema, ComponentConstructor, ComponentInfo, PoolSettings,
-	PoolInfo, PropertyType, PropertyTypeToSize, REGISTRY_MAX_COMPONENTS
+	PoolInfo, PropType, PropSize, REGISTRY_MAX_COMPONENTS
 } from '../src/index';
 
 
@@ -13,7 +13,7 @@ describe('Registry construction', () => {
 
 	it('throw an error when exceed the max number of components', () => {
 		class Component {
-			static schema: ComponentSchema = { property: PropertyType.INT_32 };
+			static schema: ComponentSchema = { property: PropType.INT_32 };
 		}
 
 		const componentsList: ComponentConstructor<Component>[] = [];
@@ -27,7 +27,7 @@ describe('Registry construction', () => {
 
 	it('create a pool with the component', () => {
 		class Component {
-			static schema: ComponentSchema = { property: PropertyType.BYTE };
+			static schema: ComponentSchema = { property: PropType.BYTE };
 		}
 
 		const registry = new Registry([Component]);
@@ -37,7 +37,7 @@ describe('Registry construction', () => {
 			size: 1,
 			properties: [{
 				name: 'property',
-				type: PropertyType.BYTE,
+				type: PropType.BYTE,
 				size: 1,
 				offset: 0
 			}]
@@ -48,7 +48,7 @@ describe('Registry construction', () => {
 
 	it('create a pool with the specified settings', () => {
 		class Component {
-			static schema: ComponentSchema = { property: PropertyType.FLOAT_32 };
+			static schema: ComponentSchema = { property: PropType.FLOAT_32 };
 			static poolSettings: PoolSettings = {
 				initialCount: 14,
 				increaseCount: 20
@@ -58,15 +58,15 @@ describe('Registry construction', () => {
 		const registry = new Registry([Component]);
 
 		const expectedPoolInfo: PoolInfo = {
-			allocatedSize: 14 * PropertyTypeToSize[PropertyType.FLOAT_32],
+			allocatedSize: 14 * PropSize[PropType.FLOAT_32],
 			usedSize: 0,
-			bufferDeltaSize: 20 * PropertyTypeToSize[PropertyType.FLOAT_32],
-			sectionSize: PropertyTypeToSize[PropertyType.FLOAT_32],
+			bufferDeltaSize: 20 * PropSize[PropType.FLOAT_32],
+			sectionSize: PropSize[PropType.FLOAT_32],
 			sectionLayout: [{
 				name: 'property',
 				offset: 0,
-				size: PropertyTypeToSize[PropertyType.FLOAT_32],
-				type: PropertyType.FLOAT_32
+				size: PropSize[PropType.FLOAT_32],
+				type: PropType.FLOAT_32
 			}]
 		};
 
