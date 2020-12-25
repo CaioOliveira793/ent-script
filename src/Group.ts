@@ -43,8 +43,8 @@ class Group {
 			getSlice(this.freeIndex++ % this.chunkSectionCount);
 	}
 
-	public setSectionData = (id: number, orderedComponentInfo: ComponentInfo[], componentData: ArrayBuffer):
-	{ view: DataView, offset: number, remainingOrderedComponentInfo: GroupComponentInfo[] } => {
+	public setSectionData = (id: number, orderedComponentInfo: GroupComponentInfo[], componentData: ArrayBuffer):
+	{ view: DataView, offset: number, missingComponents: GroupComponentInfo[] } => {
 		this.idList.push(id);
 		this.idToIndex.set(id, this.freeIndex);
 
@@ -52,7 +52,7 @@ class Group {
 			index = this.freeIndex++ % this.chunkSectionCount,
 			sectionDataView = new Uint8Array(this.chunkSectionSize),
 			componentDataView = new Uint8Array(componentData),
-			remainingOrderedComponentInfo = [...this.orderedComponentInfo];
+			missingComponents = [...this.orderedComponentInfo];
 
 		let i = 0, j = 0;
 		while (i < orderedComponentInfo.length && j < this.orderedComponentInfo.length) {
@@ -60,17 +60,17 @@ class Group {
 			else if (orderedComponentInfo[i].index < this.orderedComponentInfo[j].index) i++;
 			else if (orderedComponentInfo[i].index === this.orderedComponentInfo[j].index) {
 				sectionDataView.set(componentDataView.slice(
-					this.orderedComponentInfo[j].offset,
-					this.orderedComponentInfo[j].size
-				));
-				remainingOrderedComponentInfo.splice(i++, 1);
-				j++;
+					orderedComponentInfo[i].offset,
+					orderedComponentInfo[i].size
+				), this.orderedComponentInfo[j].offset);
+				missingComponents.splice(j++, 1);
+				i++;
 			}
 		}
 		chunk.setSlice(index, sectionDataView);
 		return {
 			...chunk.getSlice(index),
-			remainingOrderedComponentInfo
+			missingComponents
 		};
 	}
 

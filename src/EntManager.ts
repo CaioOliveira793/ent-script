@@ -17,7 +17,7 @@ export interface ComponentListProps {
 
 
 export interface ComponentList {
-	[componentName: string]: unknown[];
+	[componentName: string]: Record<string, unknown>;
 }
 
 export interface EntManagerExposedData {
@@ -71,10 +71,10 @@ class EntManager {
 		return entityIdList.map(id => ({ id, mask: 0 }));
 	}
 
-	public createEntitiesWithComponents = (componentsConstructor: ComponentList, entityCount = 1): Entity[] => {
+	public createEntitiesWithComponents = (components: string[], entityCount = 1): Entity[] => {
 		// TODO: handle shared, tag, blob components
 		let mask = 0;
-		for (const component in componentsConstructor)
+		for (const component of components)
 			mask |= this.componentsMap.get(component)!.mask;
 
 		const entityIdList = this.createEntityIds(entityCount),
@@ -86,9 +86,9 @@ class EntManager {
 			this.entityMaskList[entity] = { mask };
 		}
 
-		for (const componentName in componentsConstructor) {
+		for (const componentName of components) {
 			const constructor = this.componentConstructorMap.get(componentName) as ComponentConstructor<EntComponentTypes>;
-			componentsDataList.push(new constructor(...componentsConstructor[componentName]));
+			componentsDataList.push(new constructor());
 			refsList.push(this.refsMap.get(componentName) as Reference<EntComponentTypes>);
 		}
 		const componentsDataBuffer = this.createComponentData(refsList, componentsDataList, group.getComponentsSize());
@@ -122,9 +122,9 @@ class EntManager {
 	public isValidEntity = (entity: Entity): boolean =>
 		(this.isExistentEntity(entity) && entity.mask === this.entityMaskList[entity.id].mask);
 
-	public hasComponents = (entity: Entity, componentsName: string[]): boolean[] => {
+	public hasComponents = (entity: Entity, components: string[]): boolean[] => {
 		const hasComponentList = [];
-		for (const component of componentsName) {
+		for (const component of components) {
 			const mask = this.componentsMap.get(component)!.mask;
 			hasComponentList.push((this.entityMaskList[entity.id].mask & mask) === mask);
 		}
@@ -142,27 +142,26 @@ class EntManager {
 
 
 	// component ///////////////////////////////////////////////
-	public addComponentsInEntities = (entities: Entity[], componentsConstructor: ComponentList): void => {
+	public addComponentsInEntities = (entities: Entity[], components: string[], /* componentsData?: unknown[] */): void => {
 		let adiccionMask = 0;
-		for (const name in componentsConstructor)
+		for (const name of components)
 			adiccionMask |= this.componentsMap.get(name)!.mask;
 
 		for (const entity of entities) {
 			const oldMask = this.entityMaskList[entity.id].mask;
 			const newMask = this.entityMaskList[entity.id].mask |= adiccionMask;
-			console.log(`entity ${entity.id}: ${newMask.toString(2)}`);
 
 			let newSectionData = {} as {
 				view: DataView;
 				offset: number;
-				remainingOrderedComponentInfo: GroupComponentInfo[];
+				missingComponents: GroupComponentInfo[];
 			};
 
 			if (oldMask === 0) {
 				const newGroup = this.returnOrCreateGroup(newMask);
 				newSectionData = {
 					...newGroup.setSection(entity.id),
-					remainingOrderedComponentInfo: newGroup.getOrderedComponentInfo()
+					missingComponents: newGroup.getOrderedComponentInfo()
 				};
 			} else {
 				const oldGroup = this.groupsMap.get(oldMask) as Group,
@@ -177,11 +176,10 @@ class EntManager {
 				);
 			}
 
-			for (const componentInfo of newSectionData.remainingOrderedComponentInfo) {
+			for (const componentInfo of newSectionData.missingComponents) {
 				const componentName = this.componentList[componentInfo.index].name,
-					constructor = this.componentConstructorMap
-						.get(componentName) as ComponentConstructor<EntComponentTypes>,
-					component = new constructor(...componentsConstructor[componentName]) as { [key: string]: unknown },
+					constructor = this.componentConstructorMap.get(componentName)!,
+					component = /* componentsData[index] ?? */ new constructor() as { [key: string]: unknown },
 					ref = this.refsMap.get(componentName) as Reference<{ [key: string]: unknown }>;
 
 				ref.updateView(newSectionData.view, newSectionData.offset + componentInfo.offset);
