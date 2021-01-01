@@ -1,10 +1,3 @@
-import incrementCounter from './generators/incrementCounter';
-
-export interface ChunkIterator {
-	offsetIterator: Generator<number, void, unknown>;
-	view: DataView;
-}
-
 export const DEFAULT_CHUNK_SECTION_COUNT = 1024;
 
 class Chunk {
@@ -16,6 +9,8 @@ class Chunk {
 		this.view = new DataView(this.buffer);
 		this.byteView = new Uint8Array(this.buffer);
 	}
+
+	public getView = (): DataView => this.view;
 
 	public getSlice = (index: number): { view: DataView, offset: number } => ({
 		offset: index * this.sectionSize,
@@ -41,11 +36,6 @@ class Chunk {
 		);
 		return { view: this.view, offset: fromIndex * this.sectionSize };
 	}
-
-	public iterator = (initialIndex: number, limitIndex: number = this.sectionCount): ChunkIterator => ({
-		offsetIterator: incrementCounter(initialIndex, limitIndex),
-		view: this.view
-	})
 
 
 	private readonly sectionSize: number;

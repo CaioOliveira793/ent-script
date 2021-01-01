@@ -20,27 +20,28 @@ export interface ComponentList {
 	[componentName: string]: Record<string, unknown>;
 }
 
-export interface EntManagerExposedData {
-	refsMap: Map<string, Reference<unknown>>;
-	componentsMap: Map<string, ComponentMapProps>;
-	groupsMap: Map<number, Group>;
-}
-
 
 class EntManager {
-	constructor(components: ComponentConstructor<EntComponentTypes>[]) {
-		this.refsMap = new Map();
-		this.componentsMap = new Map();
+	constructor(
+		componentsConstructor: ComponentConstructor<EntComponentTypes>[],
+		componentsMapView: () => Map<string, ComponentMapProps>,
+		refsMapView: () => Map<string, Reference<EntComponentTypes>>,
+		groupsMapView: () => Map<number, Group>
+	) {
+		this.componentsMap = componentsMapView;
+		this.refsMapView = refsMapView;
+		this.groupsMapView = groupsMapView;
+
 		this.componentList = [];
 		this.componentConstructorMap = new Map();
 
 		let index = 0, mask = 1;
 		// TODO: sort the components to unique, shared and blob
-		for (const component of components) {
+		for (const component of componentsConstructor) {
 			mask = 1 << index;
 			const ref = new Reference<EntComponentTypes>(component.schema);
-			this.refsMap.set(component.name, ref);
-			this.componentsMap.set(component.name, {
+			this.refsMapView().set(component.name, ref);
+			this.componentsMap().set(component.name, {
 				mask,
 				index,
 				size: ref.getSize()
@@ -58,7 +59,6 @@ class EntManager {
 		this.nextEntityId = 0;
 
 		this.emptyEntityIdList = [];
-		this.groupsMap = new Map();
 	}
 
 	// entity //////////////////////////////////////////////////
@@ -75,7 +75,7 @@ class EntManager {
 		// TODO: handle shared, tag, blob components
 		let mask = 0;
 		for (const component of components)
-			mask |= this.componentsMap.get(component)!.mask;
+			mask |= this.componentsMap().get(component)!.mask;
 
 		const entityIdList = this.createEntityIds(entityCount),
 			group = this.returnOrCreateGroup(mask),
@@ -87,11 +87,16 @@ class EntManager {
 		}
 
 		for (const componentName of components) {
-			const constructor = this.componentConstructorMap.get(componentName) as ComponentConstructor<EntComponentTypes>;
+			const constructor = this.componentConstructorMap
+				.get(componentName) as ComponentConstructor<EntComponentTypes>;
 			componentsDataList.push(new constructor());
-			refsList.push(this.refsMap.get(componentName) as Reference<EntComponentTypes>);
+			refsList.push(this.refsMapView().get(componentName) as Reference<EntComponentTypes>);
 		}
-		const componentsDataBuffer = this.createComponentData(refsList, componentsDataList, group.getComponentsSize());
+		const componentsDataBuffer = this.createComponentData(
+			refsList,
+			componentsDataList,
+			group.getComponentsSize()
+		);
 		group.setMultipleSections(entityIdList, componentsDataBuffer);
 		return entityIdList.map(id => ({ id, mask }));
 	}
@@ -103,13 +108,13 @@ class EntManager {
 			const mask = this.entityMaskList[entity.id].mask;
 			this.entityMaskList[entity.id] = undefined as unknown as { mask: number };
 			if (mask === 0) continue;
-			const group = this.groupsMap.get(mask) as Group;
+			const group = this.groupsMapView().get(mask) as Group;
 			group.deleteSection(entity.id);
 			maskSet.add(mask);
 		}
 		for (const mask of maskSet) {
-			if (this.groupsMap.get(mask)!.getSectionCount() === 0)
-				this.groupsMap.delete(mask);
+			if (this.groupsMapView().get(mask)!.getSectionCount() === 0)
+				this.groupsMapView().delete(mask);
 		}
 	}
 
@@ -117,15 +122,18 @@ class EntManager {
 
 	
 	// entity utils ////////////////////////////////////////////
-	public isExistentEntity = (entity: Entity): boolean => this.entityMaskList[entity.id] != undefined;
+	public isExistentEntity = (entity: Entity): boolean =>
+		this.entityMaskList[entity.id] != undefined;
 
-	public isValidEntity = (entity: Entity): boolean =>
-		(this.isExistentEntity(entity) && entity.mask === this.entityMaskList[entity.id].mask);
+	public isValidEntity = (entity: Entity): boolean => (
+		this.isExistentEntity(entity) && entity.mask
+		=== this.entityMaskList[entity.id].mask
+	);
 
 	public hasComponents = (entity: Entity, components: string[]): boolean[] => {
 		const hasComponentList = [];
 		for (const component of components) {
-			const mask = this.componentsMap.get(component)!.mask;
+			const mask = this.componentsMap().get(component)!.mask;
 			hasComponentList.push((this.entityMaskList[entity.id].mask & mask) === mask);
 		}
 		return hasComponentList;
@@ -142,10 +150,11 @@ class EntManager {
 
 
 	// component ///////////////////////////////////////////////
-	public addComponentsInEntities = (entities: Entity[], components: string[], /* componentsData?: unknown[] */): void => {
+	public addComponentsInEntities = (entities: Entity[], components: string[],
+	/* componentsData?: unknown[] */): void => {
 		let adiccionMask = 0;
 		for (const name of components)
-			adiccionMask |= this.componentsMap.get(name)!.mask;
+			adiccionMask |= this.componentsMap().get(name)!.mask;
 
 		for (const entity of entities) {
 			const oldMask = this.entityMaskList[entity.id].mask;
@@ -164,7 +173,7 @@ class EntManager {
 					missingComponents: newGroup.getOrderedComponentInfo()
 				};
 			} else {
-				const oldGroup = this.groupsMap.get(oldMask) as Group,
+				const oldGroup = this.groupsMapView().get(oldMask) as Group,
 					oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
 					newGroup = this.returnOrCreateGroup(newMask);
 
@@ -180,7 +189,7 @@ class EntManager {
 				const componentName = this.componentList[componentInfo.index].name,
 					constructor = this.componentConstructorMap.get(componentName)!,
 					component = /* componentsData[index] ?? */ new constructor() as { [key: string]: unknown },
-					ref = this.refsMap.get(componentName) as Reference<{ [key: string]: unknown }>;
+					ref = this.refsMapView().get(componentName) as Reference<{ [key: string]: unknown }>;
 
 				ref.updateView(newSectionData.view, newSectionData.offset + componentInfo.offset);
 				const componentRef = ref.get();
@@ -198,7 +207,7 @@ class EntManager {
 	public removeComponentsInEntities = (entities: Entity[], componentsName: string[]): void => {
 		let permissionMask = 0;
 		for (const name of componentsName)
-			permissionMask |= this.componentsMap.get(name)!.mask;
+			permissionMask |= this.componentsMap().get(name)!.mask;
 		permissionMask = ~permissionMask;
 
 		for (const entity of entities) {
@@ -206,7 +215,7 @@ class EntManager {
 			if (oldMask === 0) continue;
 			const newMask = this.entityMaskList[entity.id].mask &= permissionMask;
 
-			const oldGroup = this.groupsMap.get(oldMask) as Group,
+			const oldGroup = this.groupsMapView().get(oldMask) as Group,
 				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
 				newGroup = this.returnOrCreateGroup(newMask);
 
@@ -265,7 +274,7 @@ class EntManager {
 	}
 
 	private returnOrCreateGroup = (mask: number): Group => {
-		let group = this.groupsMap.get(mask) as Group;
+		let group = this.groupsMapView().get(mask) as Group;
 		if (!group) {
 			const componentsInfo = [];
 			const indexIterator = indexInMask(mask);
@@ -277,16 +286,16 @@ class EntManager {
 				});
 			}
 			group = new Group(componentsInfo);
-			this.groupsMap.set(mask, group);
+			this.groupsMapView().set(mask, group);
 		}
 		return group;
 	}
 
 	// components
-	private readonly refsMap: Map<string, Reference<EntComponentTypes>>;
-	private readonly componentsMap: Map<string, ComponentMapProps>;
-	private readonly componentList: ComponentListProps[];
+	private readonly refsMapView: () => Map<string, Reference<EntComponentTypes>>;
+	private readonly componentsMap: () => Map<string, ComponentMapProps>;
 	private readonly componentConstructorMap: Map<string, ComponentConstructor<EntComponentTypes>>;
+	private readonly componentList: ComponentListProps[];
 
 	// entity data
 	private readonly entityMaskList: { mask: number }[];
@@ -295,7 +304,7 @@ class EntManager {
 
 	// groups
 	private readonly emptyEntityIdList: number[];
-	private readonly groupsMap: Map<number, Group>;
+	private readonly groupsMapView: () => Map<number, Group>;
 }
 
 

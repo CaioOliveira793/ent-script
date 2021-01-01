@@ -1,27 +1,33 @@
-import Chunk, { ChunkIterator, DEFAULT_CHUNK_SECTION_COUNT } from './Chunk';
+import Chunk, { DEFAULT_CHUNK_SECTION_COUNT } from './Chunk';
 import PropType, { PropSize } from './PropType';
 import LITTLE_ENDIAN from './utils/LittleEndian';
 
 
-interface ComponentInfo {
+export interface GroupComponentInfo {
 	mask: number;
 	index: number;
 	size: number;
-}
-
-export interface GroupComponentInfo extends ComponentInfo {
 	offset: number;
 }
 
-export const ID_SIZE = PropSize[PropType.U_INT_32];
-export const ID_TYPE = PropType.U_INT_32;
+export interface GroupIterationData {
+	componentSectionOffset: number[];
+	chunkViews: {
+		view: DataView;
+		sectionSize: number;
+		sectionCount: number;
+	}[];
+}
+
+export const GROUP_ID_SIZE = PropSize[PropType.U_INT_32];
+export const GROUP_ID_TYPE = PropType.U_INT_32;
 
 class Group {
-	constructor(componentsInfo: ComponentInfo[]) {
+	constructor(componentsInfo: { mask: number; index: number; size: number; }[]) {
 		this.idToIndex = new Map();
 
 		this.orderedComponentInfo = [];
-		let mask = 0, offset = ID_SIZE;
+		let mask = 0, offset = GROUP_ID_SIZE;
 		for (const compInfo of componentsInfo) {
 			// TODO: sort the order by index
 			this.orderedComponentInfo.push({ ...compInfo, offset });
@@ -39,19 +45,23 @@ class Group {
 	public setSection = (id: number): { view: DataView, offset: number } => {
 		this.idToIndex.set(id, this.freeIndex);
 
-		return this.returnOrCreateChunk(this.freeIndex / this.chunkSectionCount).
+		const slice = this.returnOrCreateChunk(Math.floor(this.freeIndex / this.chunkSectionCount)).
 			getSlice(this.freeIndex++ % this.chunkSectionCount);
+		slice.view.setUint32(slice.offset, id);
+		return slice;
 	}
 
 	public setSectionData = (id: number, orderedComponentInfo: GroupComponentInfo[], componentData: ArrayBuffer):
 	{ view: DataView, offset: number, missingComponents: GroupComponentInfo[] } => {
 		this.idToIndex.set(id, this.freeIndex);
 
-		const chunk = this.returnOrCreateChunk(this.freeIndex / this.chunkSectionCount),
+		const chunk = this.returnOrCreateChunk(Math.floor(this.freeIndex / this.chunkSectionCount)),
 			index = this.freeIndex++ % this.chunkSectionCount,
 			sectionDataView = new Uint8Array(this.chunkSectionSize),
 			componentDataView = new Uint8Array(componentData),
 			missingComponents = [...this.orderedComponentInfo];
+
+		(new DataView(sectionDataView.buffer)).setUint32(0, id);
 
 		let i = 0, j = 0;
 		while (i < orderedComponentInfo.length && j < this.orderedComponentInfo.length) {
@@ -74,14 +84,16 @@ class Group {
 	}
 
 	public setMultipleSections = (idList: number[], componentsData?: ArrayBuffer): void => {
-		// TODO: use a better algorithm
+		const sectionData = new ArrayBuffer(this.chunkSectionSize);
+		if (componentsData)
+			(new Uint8Array(sectionData)).set(new Uint8Array(componentsData), GROUP_ID_SIZE);
+
 		for (const id of idList) {
 			this.idToIndex.set(id, this.freeIndex);
 
-			const chunk = this.returnOrCreateChunk(this.freeIndex / this.chunkSectionCount);
-			if (componentsData)
-				chunk.setSlice(this.freeIndex % this.chunkSectionCount, componentsData);
-			this.freeIndex++;
+			const chunk = this.returnOrCreateChunk(Math.floor(this.freeIndex / this.chunkSectionCount));
+			(new DataView(sectionData)).setUint32(0, id, LITTLE_ENDIAN);
+			chunk.setSlice(this.freeIndex++ % this.chunkSectionCount, sectionData);
 		}
 	}
 
@@ -127,31 +139,61 @@ class Group {
 			this.chunkList.length = freeChunkIndex + 1;
 	}
 
-	public iteratorList = (): ChunkIterator[] => {
-		return this.chunkList.map((chunk, index) => {
-			return chunk.iterator(
-				0,
-				this.chunkList.length === index + 1 ?
-				this.freeIndex % this.chunkSectionCount :
-				this.chunkSectionCount);
+	public getIterationData = (componentIndexes: number[]): GroupIterationData => {
+		const compInfoIndexes = this.searchComponentIndexesInOrderedComponentInfo(componentIndexes);
+
+		const componentsSectionOffset = [];
+		const chunkViews = [];
+
+		for (const index of compInfoIndexes) {
+			componentsSectionOffset.push(this.orderedComponentInfo[index].offset);
+		}
+
+		for (let i = 0; i < this.chunkList.length - 1; i++) {
+			chunkViews.push({
+				view: this.chunkList[i].getView(),
+				sectionSize: this.chunkSectionSize,
+				sectionCount: this.chunkSectionCount,
+			});
+		}
+		chunkViews.push({
+			view: this.chunkList[Math.floor(this.freeIndex / this.chunkSectionCount)].getView(),
+			sectionSize: this.chunkSectionSize,
+			sectionCount: this.freeIndex % this.chunkSectionCount
 		});
+
+		return { componentSectionOffset: componentsSectionOffset, chunkViews };
 	}
 
 	public getSectionCount = (): number => this.freeIndex + 1;
 	public getOrderedComponentInfo = (): GroupComponentInfo[] => this.orderedComponentInfo;
-	public getComponentsSize = (): number => this.chunkSectionSize;
-	// public getSectionSize = (): number => this.chunkSectionSize + idSize;
+	public getComponentsSize = (): number => this.chunkSectionSize - GROUP_ID_SIZE;
+	public getSectionSize = (): number => this.chunkSectionSize;
 
 	public readonly mask: number;
 
 
 	private returnOrCreateChunk = (index: number): Chunk => {
-		let chunk = this.chunkList[index];
-		if (!chunk) {
-			chunk = new Chunk(this.chunkSectionSize, this.chunkSectionCount);
-			this.chunkList.push(chunk);
+		if (this.chunkList.length <= index)
+			this.chunkList.push(new Chunk(this.chunkSectionSize, this.chunkSectionCount));
+		return this.chunkList[index];
+	}
+
+	private searchComponentIndexesInOrderedComponentInfo = (componentIndexes: number[]): number[] => {
+		const componentInfoIndexes = [];
+
+		// TODO: binary search
+		for (const searchCompIndex of componentIndexes) {
+			const orderedComponentInfoIterator = this.orderedComponentInfo.entries();
+			for (const [compInfoIndex, compInfo] of orderedComponentInfoIterator) {
+				if (compInfo.index === searchCompIndex) {
+					componentInfoIndexes.push(compInfoIndex);
+					break;
+				}
+			}
 		}
-		return chunk;
+
+		return componentInfoIndexes;
 	}
 
 	private readonly orderedComponentInfo: GroupComponentInfo[];

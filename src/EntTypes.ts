@@ -1,5 +1,7 @@
 import { ReferenceSchema } from './Reference';
 
+
+// Component:
 const enum ComponentType {
 	UNIQUE = 1,
 	SHARED = 2,
@@ -7,46 +9,61 @@ const enum ComponentType {
 	EMPTY  = 4
 }
 
-
 export abstract class EntComponent {
-	public static schema: ReferenceSchema;
-	public static type: ComponentType.UNIQUE;
+	public static readonly schema: ReferenceSchema;
+	public static readonly type = ComponentType.UNIQUE;
 }
 
 export abstract class EntSharedComponent {
-	public static schema: ReferenceSchema;
-	public static type: ComponentType.SHARED;
+	public static readonly schema: ReferenceSchema;
+	public static readonly type = ComponentType.SHARED;
 }
 
 export abstract class EntBlobComponent {
-	public static schema: ReferenceSchema;
-	public static type: ComponentType.BLOB;
+	public static readonly schema: ReferenceSchema;
+	public static readonly type = ComponentType.BLOB;
 }
 
 export abstract class EntEmptyComponent {
-	public static schema: ReferenceSchema;
-	public static type: ComponentType.EMPTY;
+	public static readonly schema: ReferenceSchema;
+	public static readonly type = ComponentType.EMPTY;
 }
 
 export type EntComponentTypes = EntComponent | EntSharedComponent | EntBlobComponent | EntEmptyComponent;
 
-
 export interface ComponentConstructor<T> extends Function {
 	new(...args: unknown[]): T;
-	schema: ReferenceSchema;
+	readonly schema: ReferenceSchema;
 }
 
 export type ComponentSchema = ReferenceSchema;
 
-export interface ComponentQuery {
-	readonly name: string;
-	readonly readonly: boolean;
-	readonly optional: boolean;
+
+// Query:
+export interface EntityQuery {
+	all: string[];
+	not: string[];
+	any: string[];
 }
 
+
+// Entity:
 export interface Entity {
 	readonly id: number;
 	readonly mask: number;
+}
+
+
+// Script:
+export abstract class EntScript {
+	public abstract forEachEntity: (...components: never[]) => void;
+
+	public abstract readonly argsType: string[];
+	// public abstract readonly query: EntityQuery;
+}
+
+export interface ScriptConstructor<T> extends Function {
+	new(...args: unknown[]): T;
 }
 
 
@@ -54,4 +71,4 @@ export interface Entity {
 
 // export type CommandBuffer = number;
 
-// export type EntScript = number;
+// export type DependencyGraph = number;
