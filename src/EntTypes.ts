@@ -9,23 +9,25 @@ const enum ComponentType {
 	EMPTY  = 4
 }
 
+export type ComponentSchema = ReferenceSchema;
+
 export abstract class EntComponent {
-	public static readonly schema: ReferenceSchema;
+	public static readonly schema: ComponentSchema;
 	public static readonly type = ComponentType.UNIQUE;
 }
 
 export abstract class EntSharedComponent {
-	public static readonly schema: ReferenceSchema;
+	public static readonly schema: ComponentSchema;
 	public static readonly type = ComponentType.SHARED;
 }
 
 export abstract class EntBlobComponent {
-	public static readonly schema: ReferenceSchema;
+	public static readonly schema: ComponentSchema;
 	public static readonly type = ComponentType.BLOB;
 }
 
 export abstract class EntEmptyComponent {
-	public static readonly schema: ReferenceSchema;
+	public static readonly schema: ComponentSchema;
 	public static readonly type = ComponentType.EMPTY;
 }
 
@@ -33,10 +35,8 @@ export type EntComponentTypes = EntComponent | EntSharedComponent | EntBlobCompo
 
 export interface ComponentConstructor<T> extends Function {
 	new(...args: unknown[]): T;
-	readonly schema: ReferenceSchema;
+	readonly schema: ComponentSchema;
 }
-
-export type ComponentSchema = ReferenceSchema;
 
 
 // Query:

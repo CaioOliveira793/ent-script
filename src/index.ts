@@ -1,6 +1,6 @@
-import Registry from './Registry';
-export default Registry;
+import World from './World';
+export default World;
 
-export * from './Registry';
+export * from './World';
 export * from './PropType';
-export * from './Pool';
+export * from './EntTypes';

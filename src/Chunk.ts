@@ -1,4 +1,4 @@
-export const DEFAULT_CHUNK_SECTION_COUNT = 1024;
+export const DEFAULT_CHUNK_SECTION_COUNT = 64;
 
 class Chunk {
 	constructor(sectionSize: number, maxSectionCount: number = DEFAULT_CHUNK_SECTION_COUNT) {
@@ -17,17 +17,13 @@ class Chunk {
 		view: this.view
 	})
 
-	public setSlice = (index: number, data: ArrayBuffer): void => {
+	public setSlice = (index: number, data: ArrayBuffer): { view: DataView, offset: number } => {
 		this.byteView.set(new Uint8Array(data), index * this.sectionSize);
+		return { view: this.view, offset: index * this.sectionSize };
 	}
 
-	public copySlice = (index: number): { view: DataView, offset: number, slice: ArrayBuffer } => {
-		return {
-			view: this.view,
-			offset: index * this.sectionSize,
-			slice: this.buffer.slice(index * this.sectionSize, this.sectionSize)
-		};
-	}
+	public copySlice = (index: number): ArrayBuffer =>
+		this.buffer.slice(index * this.sectionSize, index * this.sectionSize + this.sectionSize);
 
 	public moveSlice = (fromIndex: number, toIndex: number): { view: DataView, offset: number } => {
 		this.byteView.set(

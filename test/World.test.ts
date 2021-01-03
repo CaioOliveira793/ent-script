@@ -33,12 +33,12 @@ describe('World', () => {
 	});
 
 	it('run all scheduled scripts', () => {
-		let counter = 0;
+		let remainingEntitiesToRun = 284;
 		class TestScript extends EntScript {
 			public forEachEntity = (one: ComponentOne, two: ComponentTwo): void => {
 				expect(one.prop).toBe(111);
 				expect(two.prop).toBe(222);
-				counter++;
+				remainingEntitiesToRun--;
 			}
 
 			public argsType = [ComponentOne.name, ComponentTwo.name];
@@ -47,10 +47,12 @@ describe('World', () => {
 		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		world.addScript(TestScript);
 		world.schedule([TestScript.name]);
-		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentTwo.name], 3);
+		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentTwo.name], remainingEntitiesToRun);
+		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentThree.name], 72);
+		world.EntManager.createEntitiesWithComponents([ComponentTwo.name], 54);
 
 		world.execute();
-		expect(counter).toBe(3);
+		expect(remainingEntitiesToRun).toBe(0);
 	});
 
 });

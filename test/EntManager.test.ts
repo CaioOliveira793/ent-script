@@ -120,4 +120,39 @@ describe('EntManager', () => {
 		expect(world.EntManager.getComponentCount(entityList[0])).toBe(3);
 	});
 
+
+	it('remove components of empty entities', () => {
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
+		const entityList = world.EntManager.createEntities(123);
+
+		world.EntManager.removeComponentsInEntities(entityList, [ComponentTwo.name, ComponentThree.name]);
+
+		for (const entity of entityList) {
+			expect(world.EntManager.getComponentCount(entity)).toBe(0);
+		}
+	});
+
+	it('reuse deleted entity ids', () => {
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
+		const oldEntityList = world.EntManager.createEntities(9);
+		world.EntManager.destroyEntities(oldEntityList);
+
+		const newEntityList = world.EntManager.createEntities(9);
+
+		const oldEntityId = oldEntityList.map(entity => entity.id);
+		const newEntityId = newEntityList.map(entity => entity.id);
+		expect(oldEntityId).toStrictEqual(newEntityId);
+	});
+
+	it('remove components from a lot of entities', () => {
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
+		const entityList = world.EntManager.createEntitiesWithComponents([ComponentTwo.name, ComponentThree.name], 745);
+
+		world.EntManager.removeComponentsInEntities(entityList, [ComponentTwo.name, ComponentThree.name]);
+
+		for (const entity of entityList) {
+			expect(world.EntManager.getComponentCount(entity)).toBe(0);
+		}
+	});
+
 });

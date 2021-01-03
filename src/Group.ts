@@ -97,40 +97,36 @@ class Group {
 		}
 	}
 
-	public getSectionView = (id: number): { view: DataView, offset: number } => {
-		const index = this.idToIndex.get(id) as number;
-		return this.chunkList[Math.floor(index / this.chunkSectionCount)]
-			.getSlice(this.freeIndex++ % this.chunkSectionCount);
-	}
-
 	public getSectionData = (id: number): ArrayBuffer => {
 		const index = this.idToIndex.get(id) as number;
 		return this.chunkList[Math.floor(index / this.chunkSectionCount)]
-			.copySlice(this.freeIndex++ % this.chunkSectionCount).slice;
+			.copySlice(index % this.chunkSectionCount);
 	}
 
 	// TODO: add version that returns the data before delete
 	public deleteSection = (id: number): void => {
 		const index = this.idToIndex.get(id) as number,
 			chunkIndex = Math.floor(index / this.chunkSectionCount),
-			freeChunkIndex = Math.floor(this.freeIndex / this.chunkSectionCount),
-			chunk = this.chunkList[chunkIndex];
+			freeChunkIndex = Math.floor(--this.freeIndex / this.chunkSectionCount),
+			chunk = this.chunkList[chunkIndex],
+			freeChunk = this.chunkList[freeChunkIndex];
 
-		let lastId = 0;
-		if (this.freeIndex - 1 !== index) {
+		if (this.freeIndex !== index) {
+			let lastId = 0;
 			if (chunkIndex === freeChunkIndex) {
-				const { view, offset } = chunk.moveSlice(this.freeIndex - 1, index);
+				const { view, offset } = chunk.moveSlice(
+					this.freeIndex % this.chunkSectionCount,
+					index % this.chunkSectionCount
+				);
 				lastId = view.getUint32(offset, LITTLE_ENDIAN);
 			} else {
-				const { slice, view, offset } = this.chunkList[freeChunkIndex].copySlice(this.freeIndex - 1);
-				chunk.setSlice(index, slice);
+				const slice = freeChunk.copySlice(this.freeIndex % this.chunkSectionCount);
+				const { view, offset } = chunk.setSlice(index % this.chunkSectionCount, slice);
 				lastId = view.getUint32(offset, LITTLE_ENDIAN);
 			}
-
 			this.idToIndex.set(lastId, index);
-			this.idToIndex.delete(id);
 		}
-		this.freeIndex--;
+		this.idToIndex.delete(id);
 
 		// release chunk if the penultimate chunk is on
 		// half of it's capacity and the last is empty
@@ -139,6 +135,7 @@ class Group {
 			this.chunkList.length = freeChunkIndex + 1;
 	}
 
+	// TODO: return a generator
 	public getIterationData = (componentIndexes: number[]): GroupIterationData => {
 		const compInfoIndexes = this.searchComponentIndexesInOrderedComponentInfo(componentIndexes);
 
@@ -165,10 +162,10 @@ class Group {
 		return { componentSectionOffset: componentsSectionOffset, chunkViews };
 	}
 
-	public getSectionCount = (): number => this.freeIndex + 1;
+	public getSectionCount = (): number => this.freeIndex;
 	public getOrderedComponentInfo = (): GroupComponentInfo[] => this.orderedComponentInfo;
 	public getComponentsSize = (): number => this.chunkSectionSize - GROUP_ID_SIZE;
-	public getSectionSize = (): number => this.chunkSectionSize;
+	// public getSectionSize = (): number => this.chunkSectionSize;
 
 	public readonly mask: number;
 
