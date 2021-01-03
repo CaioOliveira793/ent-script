@@ -1,13 +1,13 @@
-import { PropertyType, PropertyTypeToSize } from './PropertyTypes';
+import { PropType, PropSize } from './PropType';
 import LITTLE_ENDIAN from './utils/LittleEndian';
 
 export interface ReferenceSchema {
-	[propertyName: string]: PropertyType;
+	[propertyName: string]: PropType;
 }
 
 export interface ReferenceLayout {
 	readonly name: string;
-	readonly type: PropertyType;
+	readonly type: PropType;
 	readonly size: number;
 	readonly offset: number;
 }
@@ -18,7 +18,7 @@ export class Reference<T> {
 		const sectionLayout: ReferenceLayout[] = [];
 		let offset = 0;
 		for (const propertyName in schema) {
-			const size = PropertyTypeToSize[schema[propertyName]];
+			const size = PropSize[schema[propertyName]];
 			sectionLayout.push({
 				name: propertyName,
 				type: schema[propertyName],
@@ -36,7 +36,7 @@ export class Reference<T> {
 
 		for (const layout of sectionLayout) {
 			switch (layout.type) {
-				case PropertyType.U_INT_8:
+				case PropType.U_INT_8:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getUint8(this.offset + layout.offset),
@@ -44,7 +44,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.U_INT_16:
+				case PropType.U_INT_16:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getUint16(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -52,7 +52,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.U_INT_32:
+				case PropType.U_INT_32:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getUint32(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -60,7 +60,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.U_INT_64:
+				case PropType.U_INT_64:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): bigint => this.view.getBigUint64(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -68,7 +68,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.INT_8:
+				case PropType.INT_8:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getInt8(this.offset + layout.offset),
@@ -76,7 +76,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.INT_16:
+				case PropType.INT_16:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getInt16(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -84,7 +84,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.INT_32:
+				case PropType.INT_32:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getInt32(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -92,7 +92,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.INT_64:
+				case PropType.INT_64:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): bigint => this.view.getBigInt64(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -100,7 +100,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.FLOAT_32:
+				case PropType.FLOAT_32:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getFloat32(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -108,7 +108,7 @@ export class Reference<T> {
 					});
 					break;
 
-				case PropertyType.FLOAT_64:
+				case PropType.FLOAT_64:
 					Object.defineProperty(this.ref, layout.name, {
 						enumerable: true,
 						get: (): number => this.view.getFloat64(this.offset + layout.offset, LITTLE_ENDIAN),
@@ -117,13 +117,14 @@ export class Reference<T> {
 					break;
 			}
 		}
+		Object.seal(this.ref);
 	}
 
 	public get = (): T => this.ref;
 	public getSize = (): number => this.size;
 	public getLayout = (): ReferenceLayout[] => this.layout;
 
-	public updateView = (view: DataView): void => { this.view = view; }
+	public updateView = (view: DataView, offset = 0): void => { this.view = view; this.offset = offset }
 	public updateOffset = (offset: number): void => { this.offset = offset; }
 
 

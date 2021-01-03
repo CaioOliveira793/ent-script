@@ -4,21 +4,6 @@
  */
 
 module.exports = {
-	globals: {
-		'ts-jest': {
-			tsconfig: {
-				strict: true,
-				strictFunctionTypes: false,
-				noImplicitReturns: false,
-				noImplicitThis: true,
-				noImplicitAny: true,
-				strictNullChecks: true,
-				alwaysStrict: false,
-				noUnusedLocals: true,
-				noUnusedParameters: true,
-			}
-		}
-	},
 	collectCoverage: false,
 	collectCoverageFrom: [
 		'./src/**/*.{js,ts}',
