@@ -35,8 +35,10 @@ class EntManager {
 		this.componentList = [];
 		this.componentConstructorMap = new Map();
 
+		// sort components to Tag, Unique, Shared and Blob
+		componentsConstructor.sort((compA, compB) => compA.type - compB.type);
+
 		let index = 0, mask = 1;
-		// TODO: sort the components to unique, shared and blob
 		for (const component of componentsConstructor) {
 			mask = 1 << index;
 			const ref = new Reference<EntComponentTypes>(component.schema);

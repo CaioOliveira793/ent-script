@@ -3,10 +3,10 @@ import { ReferenceSchema } from './Reference';
 
 // Component:
 const enum ComponentType {
-	UNIQUE = 1,
-	SHARED = 2,
-	BLOB   = 3,
-	EMPTY  = 4
+	EMPTY  = 1,
+	UNIQUE = 2,
+	SHARED = 3,
+	BLOB   = 4,
 }
 
 export type ComponentSchema = ReferenceSchema;
@@ -36,6 +36,7 @@ export type EntComponentTypes = EntComponent | EntSharedComponent | EntBlobCompo
 export interface ComponentConstructor<T> extends Function {
 	new(...args: unknown[]): T;
 	readonly schema: ComponentSchema;
+	readonly type: ComponentType;
 }
 
 
