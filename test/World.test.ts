@@ -1,33 +1,36 @@
 import World from '../src/World';
 import PropertyType from '../src/PropType';
-import { ComponentSchema, EntComponent, EntScript } from '../src/EntTypes';
+import { EntComponentSpec, ComponentType, EntScript } from '../src/EntTypes';
 
 
-class ComponentOne extends EntComponent {
-	public prop: number = 111;
-
-	public static schema: ComponentSchema = { prop: PropertyType.INT_32 };
+const componentOneSpec: EntComponentSpec = {
+	name: 'ComponentOne',
+	schema: { prop1: PropertyType.INT_32 },
+	type: ComponentType.UNIQUE
 }
 
-class ComponentTwo extends EntComponent {
-	public prop: number = 222;
+interface ComponentOne { prop1: number; }
 
-	public static schema: ComponentSchema = { prop: PropertyType.INT_32 };
+const componentTwoSpec: EntComponentSpec = {
+	name: 'ComponentTwo',
+	schema: { prop2: PropertyType.INT_32 },
+	type: ComponentType.UNIQUE
 }
 
-class ComponentThree extends EntComponent {
-	public prop: number = 333;
+interface ComponentTwo { prop2: number; }
 
-	public static schema: ComponentSchema = { prop: PropertyType.INT_32 };
+const componentThreeSpec: EntComponentSpec = {
+	name: 'ComponentThree',
+	schema: { prop3: PropertyType.INT_32 },
+	type: ComponentType.UNIQUE
 }
-
 
 
 
 describe('World', () => {
 
 	it('create a new World with a list of components', () => {
-		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
+		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
 
 		expect(world).toBeInstanceOf(World);
 	});
@@ -36,20 +39,20 @@ describe('World', () => {
 		let remainingEntitiesToRun = 284;
 		class TestScript extends EntScript {
 			public forEachEntity = (one: ComponentOne, two: ComponentTwo): void => {
-				expect(one.prop).toBe(111);
-				expect(two.prop).toBe(222);
+				expect(one).toStrictEqual({ prop1: 0 });
+				expect(two).toStrictEqual({ prop2: 0 });
 				remainingEntitiesToRun--;
 			}
 
-			public argsType = [ComponentOne.name, ComponentTwo.name];
+			public argsType = ['ComponentOne', 'ComponentTwo'];
 		}
-		
-		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
+
+		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
 		world.addScript(TestScript);
 		world.schedule([TestScript.name]);
-		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentTwo.name], remainingEntitiesToRun);
-		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentThree.name], 72);
-		world.EntManager.createEntitiesWithComponents([ComponentTwo.name], 54);
+		world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentTwo'], remainingEntitiesToRun);
+		world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentThree'], 72);
+		world.EntManager.createEntitiesWithComponents(['ComponentTwo'], 54);
 
 		world.execute();
 		expect(remainingEntitiesToRun).toBe(0);

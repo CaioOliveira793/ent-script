@@ -11,7 +11,7 @@ export interface GroupComponentInfo {
 }
 
 export interface GroupIterationData {
-	componentSectionOffset: number[];
+	componentsSectionOffset: number[];
 	chunkViews: {
 		view: DataView;
 		sectionSize: number;
@@ -160,7 +160,7 @@ class Group {
 			sectionCount: this.freeIndex % this.chunkSectionCount
 		});
 
-		return { componentSectionOffset: componentsSectionOffset, chunkViews };
+		return { componentsSectionOffset, chunkViews };
 	}
 
 	public getSectionCount = (): number => this.freeIndex;

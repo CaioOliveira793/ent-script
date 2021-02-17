@@ -2,7 +2,7 @@ import { ReferenceSchema } from './Reference';
 
 
 // Component:
-const enum ComponentType {
+export const enum ComponentType {
 	EMPTY  = 1,
 	UNIQUE = 2,
 	SHARED = 3,
@@ -11,32 +11,10 @@ const enum ComponentType {
 
 export type ComponentSchema = ReferenceSchema;
 
-export abstract class EntComponent {
-	public static readonly schema: ComponentSchema;
-	public static readonly type = ComponentType.UNIQUE;
-}
-
-export abstract class EntSharedComponent {
-	public static readonly schema: ComponentSchema;
-	public static readonly type = ComponentType.SHARED;
-}
-
-export abstract class EntBlobComponent {
-	public static readonly schema: ComponentSchema;
-	public static readonly type = ComponentType.BLOB;
-}
-
-export abstract class EntEmptyComponent {
-	public static readonly schema: ComponentSchema;
-	public static readonly type = ComponentType.EMPTY;
-}
-
-export type EntComponentTypes = EntComponent | EntSharedComponent | EntBlobComponent | EntEmptyComponent;
-
-export interface ComponentConstructor<T> extends Function {
-	new(...args: unknown[]): T;
-	readonly schema: ComponentSchema;
-	readonly type: ComponentType;
+export interface EntComponentSpec {
+	name: string;
+	schema: ComponentSchema;
+	type: ComponentType;
 }
 
 

@@ -1,8 +1,7 @@
 import EntManager, { ComponentMapProps } from './EntManager';
 import Group from './Group';
 import Reference from './Reference';
-import { ComponentConstructor, EntComponent, EntSharedComponent, EntScript,
-ScriptConstructor, EntComponentTypes } from './EntTypes';
+import { EntComponentSpec, EntScript, ScriptConstructor } from './EntTypes';
 
 
 // interface WorldConfig {
@@ -12,13 +11,13 @@ ScriptConstructor, EntComponentTypes } from './EntTypes';
 interface ScriptMapProps {
 	script: EntScript;
 	queryMask: number;
-	refList: Reference<EntComponentTypes>[];
+	refList: Reference<EntComponentSpec>[];
 	componentIndexList: number[];
 }
 
 
 class World {
-	constructor(componentsConstructor: ComponentConstructor<EntComponent | EntSharedComponent>[],
+	constructor(componentsConstructor: EntComponentSpec[],
 	/* config: WorldConfig */) {
 		this.scriptMap = new Map();
 		this.scheduledScripts = [];
@@ -44,7 +43,7 @@ class World {
 		let queryMask = 0;
 		for (const compoentName of script.argsType) {
 			queryMask |= this.componentsMap.get(compoentName)!.mask;
-			refList.push(this.refsMap.get(compoentName) as Reference<EntComponentTypes>);
+			refList.push(this.refsMap.get(compoentName) as Reference<EntComponentSpec>);
 			componentIndexList.push(this.componentsMap.get(compoentName)!.index);
 		}
 
@@ -76,9 +75,9 @@ class World {
 					// for sections in chunk
 					for (let sectionIndex = 0; sectionIndex < sectionCount; sectionIndex++) {
 						// for components in section
-						for (let i = 0; i < iterationData.componentSectionOffset.length; i++) {
+						for (let i = 0; i < iterationData.componentsSectionOffset.length; i++) {
 							const ref = scriptData.refList[i];
-							ref.updateView(view, sectionIndex * sectionSize + iterationData.componentSectionOffset[i]);
+							ref.updateView(view, sectionIndex * sectionSize + iterationData.componentsSectionOffset[i]);
 							scriptArgs.push(ref.get());
 						}
 						scriptData.script.forEachEntity(...scriptArgs as never[]);
@@ -102,7 +101,7 @@ class World {
 	private scheduledScripts: ScriptMapProps[];
 
 	// EntManager data:
-	private refsMap: Map<string, Reference<EntComponentTypes>>;
+	private refsMap: Map<string, Reference<EntComponentSpec>>;
 	private componentsMap: Map<string, ComponentMapProps>;
 	private groupsMap: Map<number, Group>;
 
