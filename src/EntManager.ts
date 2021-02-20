@@ -1,6 +1,6 @@
-import Group, { GroupComponentInfo } from "./Group";
-import Reference from "./Reference";
-import indexInMask from "./generators/indexInMask";
+import Group, { GroupComponentInfo } from './Group';
+import Reference from './Reference';
+import indexInMask from './generators/indexInMask';
 import { Entity, EntComponentSpec } from './EntTypes';
 
 
@@ -39,7 +39,7 @@ class EntManager {
 		this.groupsMapView = groupsMapView;
 
 		this.componentList = [];
-		this.componentSpecificationMap = new Map();
+		this.componentSpecMap = new Map();
 
 		componentsConstructor.sort((compA, compB) => compA.type - compB.type);
 
@@ -57,7 +57,7 @@ class EntManager {
 				name: component.name,
 				size: ref.getSize()
 			});
-			this.componentSpecificationMap.set(component.name, component);
+			this.componentSpecMap.set(component.name, component);
 			index++;
 		}
 
@@ -249,7 +249,7 @@ class EntManager {
 	// components
 	private readonly refsMapView: () => Map<string, Reference<EntComponentSpec>>;
 	private readonly componentsMapView: () => Map<string, ComponentMapProps>;
-	private readonly componentSpecificationMap: Map<string, EntComponentSpec>;
+	private readonly componentSpecMap: Map<string, EntComponentSpec>;
 	private readonly componentList: ComponentListProps[];
 
 	// entity data

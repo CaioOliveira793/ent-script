@@ -15,14 +15,12 @@ export interface EntComponentSpec {
 	name: string;
 	schema: ComponentSchema;
 	type: ComponentType;
-}
-
-
-// Query:
-export interface EntityQuery {
-	all: string[];
-	not: string[];
-	any: string[];
+	default?: {
+		[key: string]: number; // supported types
+	}
+	transforms?: {
+		[key: string]: (component: never) => void;
+	}
 }
 
 
@@ -45,9 +43,5 @@ export interface ScriptConstructor<T> extends Function {
 	new(...args: unknown[]): T;
 }
 
-
-// export type CommandManager = number;
-
-// export type CommandBuffer = number;
 
 // export type DependencyGraph = number;

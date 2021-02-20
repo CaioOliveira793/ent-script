@@ -8,6 +8,14 @@ import { EntComponentSpec, EntScript, ScriptConstructor } from './EntTypes';
 // 	shared: boolean;
 // }
 
+
+export interface WorldState {
+	componentIndex: Map<string, number>;
+	componentSpec: EntComponentSpec;
+	refs: Reference<unknown>[];
+	groups: Map<number, Group>;
+}
+
 interface ScriptMapProps {
 	script: EntScript;
 	queryMask: number;
