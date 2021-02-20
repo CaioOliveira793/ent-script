@@ -15,7 +15,7 @@ export interface EntComponentSpec {
 	name: string;
 	schema: ComponentSchema;
 	type: ComponentType;
-	default?: {
+	default: {
 		[key: string]: number; // supported types
 	}
 	transforms?: {

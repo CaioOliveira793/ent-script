@@ -35,5 +35,6 @@ entityQuerySpec: EntityQuerySpec): EntityQuery {
 		anyMask |= 1 << (worldState.componentIndex.get(componentName) as number);
 	}
 
+	// [all (32) + not (32) + any (32)]
 	return (new Uint32Array([allMask, notMask, anyMask])).buffer;
 }
