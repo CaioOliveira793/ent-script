@@ -11,7 +11,7 @@ export interface GroupComponentInfo {
 }
 
 export interface GroupIterationData {
-	componentSectionOffset: number[];
+	componentsSectionOffset: number[];
 	chunkViews: {
 		view: DataView;
 		sectionSize: number;
@@ -26,10 +26,11 @@ class Group {
 	constructor(componentsInfo: { mask: number; index: number; size: number; }[]) {
 		this.idToIndex = new Map();
 
+		componentsInfo.sort((compA, compB) => compA.index - compB.index);
+
 		this.orderedComponentInfo = [];
 		let mask = 0, offset = GROUP_ID_SIZE;
 		for (const compInfo of componentsInfo) {
-			// TODO: sort the order by index
 			this.orderedComponentInfo.push({ ...compInfo, offset });
 			mask |= compInfo.mask;
 			offset += compInfo.size;
@@ -159,7 +160,7 @@ class Group {
 			sectionCount: this.freeIndex % this.chunkSectionCount
 		});
 
-		return { componentSectionOffset: componentsSectionOffset, chunkViews };
+		return { componentsSectionOffset, chunkViews };
 	}
 
 	public getSectionCount = (): number => this.freeIndex;

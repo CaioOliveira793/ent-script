@@ -1,7 +1,7 @@
-import Group, { GroupComponentInfo } from "./Group";
-import Reference from "./Reference";
-import indexInMask from "./generators/indexInMask";
-import { Entity, ComponentConstructor, EntComponentTypes } from './EntTypes';
+import Group, { GroupComponentInfo } from './Group';
+import Reference from './Reference';
+import indexInMask from './generators/indexInMask';
+import { Entity, EntComponent } from './EntTypes';
 
 
 export interface ComponentMapProps {
@@ -20,28 +20,35 @@ export interface ComponentList {
 	[componentName: string]: Record<string, unknown>;
 }
 
+interface ComponentInsertionDelta {
+	view: DataView;
+	offset: number;
+	missingComponents: GroupComponentInfo[];
+}
+
 
 class EntManager {
 	constructor(
-		componentsConstructor: ComponentConstructor<EntComponentTypes>[],
+		componentsConstructor: EntComponent[],
 		componentsMapView: () => Map<string, ComponentMapProps>,
-		refsMapView: () => Map<string, Reference<EntComponentTypes>>,
+		refsMapView: () => Map<string, Reference<EntComponent>>,
 		groupsMapView: () => Map<number, Group>
 	) {
-		this.componentsMap = componentsMapView;
+		this.componentsMapView = componentsMapView;
 		this.refsMapView = refsMapView;
 		this.groupsMapView = groupsMapView;
 
 		this.componentList = [];
-		this.componentConstructorMap = new Map();
+		this.componentSpecMap = new Map();
+
+		componentsConstructor.sort((compA, compB) => compA.type - compB.type);
 
 		let index = 0, mask = 1;
-		// TODO: sort the components to unique, shared and blob
 		for (const component of componentsConstructor) {
 			mask = 1 << index;
-			const ref = new Reference<EntComponentTypes>(component.schema);
+			const ref = new Reference<EntComponent>(component.schema);
 			this.refsMapView().set(component.name, ref);
-			this.componentsMap().set(component.name, {
+			this.componentsMapView().set(component.name, {
 				mask,
 				index,
 				size: ref.getSize()
@@ -50,7 +57,7 @@ class EntManager {
 				name: component.name,
 				size: ref.getSize()
 			});
-			this.componentConstructorMap.set(component.name, component);
+			this.componentSpecMap.set(component.name, component);
 			index++;
 		}
 
@@ -74,29 +81,21 @@ class EntManager {
 	public createEntitiesWithComponents = (components: string[], entityCount = 1): Entity[] => {
 		// TODO: handle shared, tag, blob components
 		let mask = 0;
-		for (const component of components)
-			mask |= this.componentsMap().get(component)!.mask;
+		for (const component of components) {
+			mask |= this.componentsMapView().get(component)!.mask;
+		}
 
 		const entityIdList = this.createEntityIds(entityCount),
-			group = this.returnOrCreateGroup(mask),
-			componentsDataList = [],
-			refsList = [];
+			group = this.returnOrCreateGroup(mask);
 		
 		for (const entity of entityIdList) {
 			this.entityMaskList[entity] = { mask };
 		}
 
-		for (const componentName of components) {
-			const constructor = this.componentConstructorMap
-				.get(componentName) as ComponentConstructor<EntComponentTypes>;
-			componentsDataList.push(new constructor());
-			refsList.push(this.refsMapView().get(componentName) as Reference<EntComponentTypes>);
-		}
-		const componentsDataBuffer = this.createComponentData(
-			refsList,
-			componentsDataList,
-			group.getComponentsSize()
-		);
+		// TODO: pass the components buffer to ref
+		// TODO: pass the componet refs to the transform function
+		const componentsDataBuffer = new ArrayBuffer(group.getComponentsSize());
+
 		group.setMultipleSections(entityIdList, componentsDataBuffer);
 		return entityIdList.map(id => ({ id, mask }));
 	}
@@ -118,22 +117,19 @@ class EntManager {
 		}
 	}
 
-	// public destroyEntityByQuery(entityQuery: EntityQuery): void;
 
-	
 	// entity utils ////////////////////////////////////////////
 	public isExistentEntity = (entity: Entity): boolean =>
 		this.entityMaskList[entity.id] != undefined;
 
 	public isValidEntity = (entity: Entity): boolean => (
-		this.isExistentEntity(entity) && entity.mask
-		=== this.entityMaskList[entity.id].mask
+		this.isExistentEntity(entity) && entity.mask === this.entityMaskList[entity.id].mask
 	);
 
 	public hasComponents = (entity: Entity, components: string[]): boolean[] => {
 		const hasComponentList = [];
 		for (const component of components) {
-			const mask = this.componentsMap().get(component)!.mask;
+			const mask = this.componentsMapView().get(component)!.mask;
 			hasComponentList.push((this.entityMaskList[entity.id].mask & mask) === mask);
 		}
 		return hasComponentList;
@@ -150,64 +146,29 @@ class EntManager {
 
 
 	// component ///////////////////////////////////////////////
-	public addComponentsInEntities = (entities: Entity[], components: string[],
-	/* componentsData?: unknown[] */): void => {
+	public addComponentsInEntities = (entities: Entity[], components: string[]): void => {
 		let adiccionMask = 0;
 		for (const name of components)
-			adiccionMask |= this.componentsMap().get(name)!.mask;
+			adiccionMask |= this.componentsMapView().get(name)!.mask;
 
 		for (const entity of entities) {
 			const oldMask = this.entityMaskList[entity.id].mask;
 			const newMask = this.entityMaskList[entity.id].mask |= adiccionMask;
 
-			let newSectionData = {} as {
-				view: DataView;
-				offset: number;
-				missingComponents: GroupComponentInfo[];
-			};
+			/* const componentInsertionDelta = */ this.changeEntityMask(entity.id, oldMask, newMask);
 
-			if (oldMask === 0) {
-				const newGroup = this.returnOrCreateGroup(newMask);
-				newSectionData = {
-					...newGroup.setSection(entity.id),
-					missingComponents: newGroup.getOrderedComponentInfo()
-				};
-			} else {
-				const oldGroup = this.groupsMapView().get(oldMask) as Group,
-					oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
-					newGroup = this.returnOrCreateGroup(newMask);
-
-				oldGroup.deleteSection(entity.id);
-				newSectionData = newGroup.setSectionData(
-					entity.id,
-					oldGroup.getOrderedComponentInfo(),
-					oldComponentDataView
-				);
-			}
-
-			for (const componentInfo of newSectionData.missingComponents) {
-				const componentName = this.componentList[componentInfo.index].name,
-					constructor = this.componentConstructorMap.get(componentName)!,
-					component = /* componentsData[index] ?? */ new constructor() as { [key: string]: unknown },
-					ref = this.refsMapView().get(componentName) as Reference<{ [key: string]: unknown }>;
-
-				ref.updateView(newSectionData.view, newSectionData.offset + componentInfo.offset);
-				const componentRef = ref.get();
-				for (const propName in componentRef)
-					componentRef[propName] = component[propName];
-			}
+			// for (const componentInfo of componentInsertionDelta.missingComponents) {
+			// 	// TODO: pass the component ref to transform function
+			// 	const startIndex = componentInsertionDelta.offset + componentInfo.offset;
+			// 	new Uint8Array(componentInsertionDelta.view.buffer).fill(0, startIndex, startIndex + componentInfo.size);
+			// }
 		}
 	}
-
-	// public addComponentsInEntityQuery(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
-
-	// // public addSharedComponent(entities: Entity[], components: ComponentConstructor<unknown>[]): void;
-	// // public addSharedComponent(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
 
 	public removeComponentsInEntities = (entities: Entity[], componentsName: string[]): void => {
 		let permissionMask = 0;
 		for (const name of componentsName)
-			permissionMask |= this.componentsMap().get(name)!.mask;
+			permissionMask |= this.componentsMapView().get(name)!.mask;
 		permissionMask = ~permissionMask;
 
 		for (const entity of entities) {
@@ -215,22 +176,9 @@ class EntManager {
 			if (oldMask === 0) continue;
 			const newMask = this.entityMaskList[entity.id].mask &= permissionMask;
 
-			const oldGroup = this.groupsMapView().get(oldMask) as Group,
-				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entity.id)),
-				newGroup = this.returnOrCreateGroup(newMask);
-
-			oldGroup.deleteSection(entity.id);
-			newGroup.setSectionData(
-				entity.id,
-				oldGroup.getOrderedComponentInfo(),
-				oldComponentDataView
-			);
+			this.changeEntityMask(entity.id, oldMask, newMask);
 		}
 	}
-
-	// public removeComponentsInEntityQuery(entityQuery: EntityQuery, components: ComponentConstructor<unknown>[]): void;
-
-	// public setGroup(entity: Entity, Group: GroupType): void;
 
 	// public createCommandManager(): CommandManager;
 	// public setCommandBuffer(commandBuffer: CommandBuffer): void;
@@ -255,24 +203,6 @@ class EntManager {
 		return createdEntitiesList;
 	}
 
-	private createComponentData = <T>(refs: Reference<T>[], componentsData: T[], size?: number): ArrayBuffer => {
-		let bufferSize = size ?? 0;
-		if (bufferSize !== size)
-			for (const ref of refs) bufferSize += ref.getSize();
-		const componentDataBuffer = new ArrayBuffer(bufferSize);
-		const view = new DataView(componentDataBuffer);
-
-		let offset = 0;
-		for (let i = 0; i < refs.length; i++) {
-			refs[i].updateView(view, offset);
-			const componentRef = refs[i].get();
-			for (const prop in componentRef)
-				componentRef[prop] = componentsData[i][prop];
-			offset += refs[i].getSize();
-		}
-		return componentDataBuffer;
-	}
-
 	private returnOrCreateGroup = (mask: number): Group => {
 		let group = this.groupsMapView().get(mask) as Group;
 		if (!group) {
@@ -291,10 +221,35 @@ class EntManager {
 		return group;
 	}
 
+	private changeEntityMask = (entityId: number, oldMask: number, newMask: number): ComponentInsertionDelta => {
+		let componentInsertionDelta = {} as ComponentInsertionDelta;
+
+		if (oldMask === 0) {
+			const newGroup = this.returnOrCreateGroup(newMask);
+			componentInsertionDelta = {
+				...newGroup.setSection(entityId),
+				missingComponents: newGroup.getOrderedComponentInfo()
+			};
+		} else {
+			const oldGroup = this.groupsMapView().get(oldMask) as Group,
+				oldComponentDataView = new Uint8Array(oldGroup.getSectionData(entityId)),
+				newGroup = this.returnOrCreateGroup(newMask);
+
+			oldGroup.deleteSection(entityId);
+			componentInsertionDelta = newGroup.setSectionData(
+				entityId,
+				oldGroup.getOrderedComponentInfo(),
+				oldComponentDataView
+			);
+		}
+
+		return componentInsertionDelta;
+	}
+
 	// components
-	private readonly refsMapView: () => Map<string, Reference<EntComponentTypes>>;
-	private readonly componentsMap: () => Map<string, ComponentMapProps>;
-	private readonly componentConstructorMap: Map<string, ComponentConstructor<EntComponentTypes>>;
+	private readonly refsMapView: () => Map<string, Reference<EntComponent>>;
+	private readonly componentsMapView: () => Map<string, ComponentMapProps>;
+	private readonly componentSpecMap: Map<string, EntComponent>;
 	private readonly componentList: ComponentListProps[];
 
 	// entity data

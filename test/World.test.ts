@@ -1,27 +1,28 @@
 import World from '../src/World';
 import PropertyType from '../src/PropType';
-import { ComponentSchema, EntComponent, EntScript } from '../src/EntTypes';
+import { EntScript, EntUniqueComponent } from '../src/EntTypes';
 
 
-class ComponentOne extends EntComponent {
-	public prop: number = 111;
+class ComponentOne extends EntUniqueComponent {
+	public static schema = { prop1: PropertyType.INT_32 }
+	public static default = { prop1: 1 }
 
-	public static schema: ComponentSchema = { prop: PropertyType.INT_32 };
+	public prop1 = 1;
 }
 
-class ComponentTwo extends EntComponent {
-	public prop: number = 222;
+class ComponentTwo extends EntUniqueComponent {
+	public static schema = { prop2: PropertyType.INT_32 }
+	public static default = { prop2: 2 }
 
-	public static schema: ComponentSchema = { prop: PropertyType.INT_32 };
+	public prop2 = 2;
 }
 
-class ComponentThree extends EntComponent {
-	public prop: number = 333;
+class ComponentThree extends EntUniqueComponent {
+	public static schema = { prop3: PropertyType.INT_32 }
+	public static default = { prop3: 3 }
 
-	public static schema: ComponentSchema = { prop: PropertyType.INT_32 };
+	public prop3 = 3;
 }
-
-
 
 
 describe('World', () => {
@@ -36,20 +37,20 @@ describe('World', () => {
 		let remainingEntitiesToRun = 284;
 		class TestScript extends EntScript {
 			public forEachEntity = (one: ComponentOne, two: ComponentTwo): void => {
-				expect(one.prop).toBe(111);
-				expect(two.prop).toBe(222);
+				expect(one).toStrictEqual({ prop1: 0 });
+				expect(two).toStrictEqual({ prop2: 0 });
 				remainingEntitiesToRun--;
 			}
 
-			public argsType = [ComponentOne.name, ComponentTwo.name];
+			public argsType = ['ComponentOne', 'ComponentTwo'];
 		}
-		
+
 		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		world.addScript(TestScript);
 		world.schedule([TestScript.name]);
-		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentTwo.name], remainingEntitiesToRun);
-		world.EntManager.createEntitiesWithComponents([ComponentOne.name, ComponentThree.name], 72);
-		world.EntManager.createEntitiesWithComponents([ComponentTwo.name], 54);
+		world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentTwo'], remainingEntitiesToRun);
+		world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentThree'], 72);
+		world.EntManager.createEntitiesWithComponents(['ComponentTwo'], 54);
 
 		world.execute();
 		expect(remainingEntitiesToRun).toBe(0);
