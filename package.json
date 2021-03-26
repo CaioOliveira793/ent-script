@@ -1,7 +1,7 @@
 {
 	"name": "ent-script",
 	"description": "A javascript Entity Component System",
-	"version": "0.1.1-beta.4",
+	"version": "0.1.1-beta.5",
 	"author": {
 		"name": "Caio Oliveira",
 		"email": "caio.vsoliveira23@gmail.com"

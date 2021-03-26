@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.1-beta.5](https://github.com/CaioOliveira793/ent-script/compare/v0.1.1-beta.4...v0.1.1-beta.5) (2021-03-26)
+
 ### [0.1.1-beta.4](https://github.com/CaioOliveira793/ent-script/compare/v0.1.1-beta.3...v0.1.1-beta.4) (2021-01-03)
 
 
