@@ -1,32 +1,34 @@
 import World from '../src/World';
 import PropertyType from '../src/PropType';
-import { EntComponentSpec, ComponentType } from '../src/EntTypes';
+import { EntUniqueComponent } from '../src/EntTypes';
 
 
-const componentOneSpec: EntComponentSpec = {
-	name: 'ComponentOne',
-	schema: { prop: PropertyType.INT_32 },
-	type: ComponentType.UNIQUE
+class ComponentOne extends EntUniqueComponent {
+	public static schema = { prop: PropertyType.INT_32 }
+	public static default = { prop: 1 }
+
+	public prop = 1;
 }
 
-const componentTwoSpec: EntComponentSpec = {
-	name: 'ComponentTwo',
-	schema: { prop: PropertyType.INT_32 },
-	type: ComponentType.UNIQUE
+class ComponentTwo extends EntUniqueComponent {
+	public static schema = { prop: PropertyType.INT_32 }
+	public static default = { prop: 2 }
+
+	public prop = 2;
 }
 
-const componentThreeSpec: EntComponentSpec = {
-	name: 'ComponentThree',
-	schema: { prop: PropertyType.INT_32 },
-	type: ComponentType.UNIQUE
-}
+class ComponentThree extends EntUniqueComponent {
+	public static schema = { prop: PropertyType.INT_32 }
+	public static default = { prop: 3 }
 
+	public prop = 3;
+}
 
 
 describe('EntManager', () => {
 
 	it('create entities', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 
 		const entityList = world.EntManager.createEntities(4);
 		expect(entityList).toStrictEqual([
@@ -38,7 +40,7 @@ describe('EntManager', () => {
 	});
 
 	it('create entities with components', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentThree'], 4);
 
 		expect(entityList).toStrictEqual([
@@ -55,7 +57,7 @@ describe('EntManager', () => {
 
 
 	it('destroy a list of entities', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentThree'], 13);
 
 		world.EntManager.destroyEntities(entityList);
@@ -66,7 +68,7 @@ describe('EntManager', () => {
 
 
 	it('verify entity existence', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntities();
 		expect(world.EntManager.isExistentEntity(entityList[0])).toBe(true);
 		world.EntManager.destroyEntities(entityList);
@@ -74,7 +76,7 @@ describe('EntManager', () => {
 	});
 
 	it('verify valid entity', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 
 		const entityList = world.EntManager.createEntities();
 		expect(world.EntManager.isValidEntity(entityList[0])).toBe(true);
@@ -87,7 +89,7 @@ describe('EntManager', () => {
 	});
 
 	it('verify if entity has component', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntitiesWithComponents(['ComponentOne', 'ComponentThree'], 4);
 
 		world.EntManager.addComponentsInEntities(entityList.slice(1, 3), ['ComponentTwo']);
@@ -104,7 +106,7 @@ describe('EntManager', () => {
 	});
 
 	it('return the component count of a entity', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntitiesWithComponents(['ComponentOne']);
 		expect(world.EntManager.getComponentCount(entityList[0])).toBe(1);
 
@@ -123,7 +125,7 @@ describe('EntManager', () => {
 
 
 	it('remove components of empty entities', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntities(123);
 
 		world.EntManager.removeComponentsInEntities(entityList, ['ComponentTwo', 'ComponentThree']);
@@ -134,7 +136,7 @@ describe('EntManager', () => {
 	});
 
 	it('reuse deleted entity ids', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const oldEntityList = world.EntManager.createEntities(9);
 		world.EntManager.destroyEntities(oldEntityList);
 
@@ -146,7 +148,7 @@ describe('EntManager', () => {
 	});
 
 	it('remove components from a lot of entities', () => {
-		const world = new World([componentOneSpec, componentTwoSpec, componentThreeSpec]);
+		const world = new World([ComponentOne, ComponentTwo, ComponentThree]);
 		const entityList = world.EntManager.createEntitiesWithComponents(['ComponentTwo', 'ComponentThree'], 745);
 
 		world.EntManager.removeComponentsInEntities(entityList, ['ComponentTwo', 'ComponentThree']);

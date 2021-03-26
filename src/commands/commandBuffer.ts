@@ -1,5 +1,5 @@
-import { EntResourceCommand, ResourceCmd } from './resourceCommands';
-import { EntStructuralCommand, StructuralCmd } from './structuralCommands';
+import { EntResourceCommand, ResourceCommandId } from './resourceCommands';
+import { EntStructuralCommand, StructuralCommandId } from './structuralCommands';
 import { WorldState } from '../World';
 import { createEntityQuery, EntityQuerySpec } from '../entityQuery';
 import LITTLE_ENDIAN from '../utils/LittleEndian';
@@ -9,7 +9,7 @@ export type CommandBuffer = ArrayBuffer;
 
 function resourceCommandParser(worldState: WorldState, resourceCommand: EntResourceCommand): ArrayBuffer {
 	switch (resourceCommand.command) {
-		case ResourceCmd.CREATE: {
+		case ResourceCommandId.CREATE: {
 			// [command (1) + entityCount (2)]
 			const buffer = new ArrayBuffer(3);
 			const view = new DataView(buffer);
@@ -18,7 +18,7 @@ function resourceCommandParser(worldState: WorldState, resourceCommand: EntResou
 			return buffer;
 		}
 
-		case ResourceCmd.QUERY: {
+		case ResourceCommandId.QUERY: {
 			return createEntityQuery(worldState, resourceCommand.querySpec as EntityQuerySpec);
 		}
 	}
@@ -27,12 +27,12 @@ function resourceCommandParser(worldState: WorldState, resourceCommand: EntResou
 function structuralCommandParser(worldState: WorldState,
 structuralCommand: EntStructuralCommand): ArrayBuffer {
 	switch (structuralCommand.command) {
-		case StructuralCmd.ADD_TAG:
-		case StructuralCmd.ADD_UNIQUE_DEFAULT:
-		case StructuralCmd.REMOVE_TAG:
-		case StructuralCmd.REMOVE_UNIQUE:
-		case StructuralCmd.REMOVE_SHARED:
-		case StructuralCmd.REMOVE_BLOB: {
+		case StructuralCommandId.ADD_TAG:
+		case StructuralCommandId.ADD_UNIQUE_DEFAULT:
+		case StructuralCommandId.REMOVE_TAG:
+		case StructuralCommandId.REMOVE_UNIQUE:
+		case StructuralCommandId.REMOVE_SHARED:
+		case StructuralCommandId.REMOVE_BLOB: {
 			// [command (1) + componentIndex (2)]
 			const buffer = new ArrayBuffer(3);
 			const view = new DataView(buffer);
@@ -50,8 +50,8 @@ structuralCommand: EntStructuralCommand): ArrayBuffer {
 		// case StructuralCmd.ADD_SHARED:
 		// case StructuralCmd.ADD_BLOB:
 
-		case StructuralCmd.REMOVE_ALL_COMPONENT:
-		case StructuralCmd.DESTROY_ENTITY: {
+		case StructuralCommandId.REMOVE_ALL_COMPONENT:
+		case StructuralCommandId.DESTROY_ENTITY: {
 			// [command (1)]
 			return new Uint8Array([structuralCommand.command]).buffer;
 		}

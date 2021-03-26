@@ -1,4 +1,4 @@
-export const enum StructuralCmd {
+export const enum StructuralCommandId {
 	ADD_TAG               = 1,
 	ADD_UNIQUE_DEFAULT    = 2,
 	ADD_UNIQUE_TRANSFORM  = 3,
@@ -15,7 +15,7 @@ export const enum StructuralCmd {
 }
 
 export interface EntStructuralCommand {
-	command: StructuralCmd;
+	command: StructuralCommandId;
 	param?: string;
 	transform?: string;
 }
@@ -23,14 +23,14 @@ export interface EntStructuralCommand {
 
 export function addTagComponent(component: string): EntStructuralCommand {
 	return {
-		command: StructuralCmd.ADD_TAG,
+		command: StructuralCommandId.ADD_TAG,
 		param: component
 	};
 }
 
 export function addUniqueComponent(component: string, transform?: string, /* data?: unknown */): EntStructuralCommand {
 	return {
-		command: (transform) ? StructuralCmd.ADD_UNIQUE_TRANSFORM : StructuralCmd.ADD_UNIQUE_DEFAULT,
+		command: (transform) ? StructuralCommandId.ADD_UNIQUE_TRANSFORM : StructuralCommandId.ADD_UNIQUE_DEFAULT,
 		param: component,
 		transform
 	};
@@ -43,14 +43,14 @@ export function addUniqueComponent(component: string, transform?: string, /* dat
 
 export function removeTagComponent(component: string): EntStructuralCommand {
 	return {
-		command: StructuralCmd.REMOVE_TAG,
+		command: StructuralCommandId.REMOVE_TAG,
 		param: component
 	};
 }
 
 export function removeUniqueComponent(component: string): EntStructuralCommand {
 	return {
-		command: StructuralCmd.REMOVE_TAG,
+		command: StructuralCommandId.REMOVE_TAG,
 		param: component
 	};
 }
@@ -61,7 +61,7 @@ export function removeUniqueComponent(component: string): EntStructuralCommand {
 
 
 export function destroyEntities(): EntStructuralCommand {
-	return { command: StructuralCmd.DESTROY_ENTITY };
+	return { command: StructuralCommandId.DESTROY_ENTITY };
 }
 
 // function removeAllComponents(): EntStructuralCommand {}

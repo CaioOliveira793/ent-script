@@ -1,13 +1,13 @@
 import { EntityQuerySpec } from '../entityQuery';
 
 
-export const enum ResourceCmd {
+export const enum ResourceCommandId {
 	CREATE = 255,
 	QUERY  = 254
 }
 
 export interface EntResourceCommand {
-	command: ResourceCmd;
+	command: ResourceCommandId;
 	count?: number;
 	querySpec?: EntityQuerySpec;
 }
@@ -15,9 +15,9 @@ export interface EntResourceCommand {
 
 export function createEntities(count: number): EntResourceCommand {
 	// TODO: assert if count is greater than 0
-	return { command: ResourceCmd.CREATE, count: count };
+	return { command: ResourceCommandId.CREATE, count: count };
 }
 
 export function queryEntities(query: EntityQuerySpec): EntResourceCommand {
-	return { command: ResourceCmd.QUERY, querySpec: query };
+	return { command: ResourceCommandId.QUERY, querySpec: query };
 }

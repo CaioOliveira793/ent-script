@@ -11,16 +11,24 @@ export const enum ComponentType {
 
 export type ComponentSchema = ReferenceSchema;
 
-export interface EntComponentSpec {
+export interface EntComponent {
 	name: string;
-	schema: ComponentSchema;
 	type: ComponentType;
-	default: {
-		[key: string]: number; // supported types
-	}
-	transforms?: {
-		[key: string]: (component: never) => void;
-	}
+	schema: ReferenceSchema;
+	default: { [key: string]: number; };
+	transforms?: { [key: string]: (component: never) => void; };
+}
+
+export abstract class EntEmptyComponent {
+	public static type = ComponentType.EMPTY;
+}
+
+export abstract class EntUniqueComponent {
+	public static schema: ReferenceSchema;
+	public static default: { [key: string]: number; };
+	public static transforms?: { [key: string]: (component: never) => void; };
+
+	public static type = ComponentType.UNIQUE;
 }
 
 

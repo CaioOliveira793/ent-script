@@ -1,7 +1,7 @@
 import EntManager, { ComponentMapProps } from './EntManager';
 import Group from './Group';
 import Reference from './Reference';
-import { EntComponentSpec, EntScript, ScriptConstructor } from './EntTypes';
+import { EntComponent, EntScript, ScriptConstructor } from './EntTypes';
 
 
 // interface WorldConfig {
@@ -11,7 +11,7 @@ import { EntComponentSpec, EntScript, ScriptConstructor } from './EntTypes';
 
 export interface WorldState {
 	componentIndex: Map<string, number>;
-	componentSpec: EntComponentSpec;
+	componentSpec: EntComponent;
 	refs: Reference<unknown>[];
 	groups: Map<number, Group>;
 }
@@ -19,13 +19,13 @@ export interface WorldState {
 interface ScriptMapProps {
 	script: EntScript;
 	queryMask: number;
-	refList: Reference<EntComponentSpec>[];
+	refList: Reference<EntComponent>[];
 	componentIndexList: number[];
 }
 
 
 class World {
-	constructor(componentsConstructor: EntComponentSpec[],
+	constructor(componentsConstructor: EntComponent[],
 	/* config: WorldConfig */) {
 		this.scriptMap = new Map();
 		this.scheduledScripts = [];
@@ -51,7 +51,7 @@ class World {
 		let queryMask = 0;
 		for (const compoentName of script.argsType) {
 			queryMask |= this.componentsMap.get(compoentName)!.mask;
-			refList.push(this.refsMap.get(compoentName) as Reference<EntComponentSpec>);
+			refList.push(this.refsMap.get(compoentName) as Reference<EntComponent>);
 			componentIndexList.push(this.componentsMap.get(compoentName)!.index);
 		}
 
@@ -109,7 +109,7 @@ class World {
 	private scheduledScripts: ScriptMapProps[];
 
 	// EntManager data:
-	private refsMap: Map<string, Reference<EntComponentSpec>>;
+	private refsMap: Map<string, Reference<EntComponent>>;
 	private componentsMap: Map<string, ComponentMapProps>;
 	private groupsMap: Map<number, Group>;
 

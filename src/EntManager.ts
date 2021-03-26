@@ -1,7 +1,7 @@
 import Group, { GroupComponentInfo } from './Group';
 import Reference from './Reference';
 import indexInMask from './generators/indexInMask';
-import { Entity, EntComponentSpec } from './EntTypes';
+import { Entity, EntComponent } from './EntTypes';
 
 
 export interface ComponentMapProps {
@@ -29,9 +29,9 @@ interface ComponentInsertionDelta {
 
 class EntManager {
 	constructor(
-		componentsConstructor: EntComponentSpec[],
+		componentsConstructor: EntComponent[],
 		componentsMapView: () => Map<string, ComponentMapProps>,
-		refsMapView: () => Map<string, Reference<EntComponentSpec>>,
+		refsMapView: () => Map<string, Reference<EntComponent>>,
 		groupsMapView: () => Map<number, Group>
 	) {
 		this.componentsMapView = componentsMapView;
@@ -46,7 +46,7 @@ class EntManager {
 		let index = 0, mask = 1;
 		for (const component of componentsConstructor) {
 			mask = 1 << index;
-			const ref = new Reference<EntComponentSpec>(component.schema);
+			const ref = new Reference<EntComponent>(component.schema);
 			this.refsMapView().set(component.name, ref);
 			this.componentsMapView().set(component.name, {
 				mask,
@@ -247,9 +247,9 @@ class EntManager {
 	}
 
 	// components
-	private readonly refsMapView: () => Map<string, Reference<EntComponentSpec>>;
+	private readonly refsMapView: () => Map<string, Reference<EntComponent>>;
 	private readonly componentsMapView: () => Map<string, ComponentMapProps>;
-	private readonly componentSpecMap: Map<string, EntComponentSpec>;
+	private readonly componentSpecMap: Map<string, EntComponent>;
 	private readonly componentList: ComponentListProps[];
 
 	// entity data
