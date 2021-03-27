@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.1-beta.7](https://github.com/CaioOliveira793/ent-script/compare/v0.1.1-beta.6...v0.1.1-beta.7) (2021-03-27)
+
+
+### Documentation
+
+* add the architecture overview in readme ([b1a8838](https://github.com/CaioOliveira793/ent-script/commit/b1a8838e6dc20d30bb3c902c5e117684f8096f64))
+
 ### [0.1.1-beta.6](https://github.com/CaioOliveira793/ent-script/compare/v0.1.1-beta.5...v0.1.1-beta.6) (2021-03-27)
 
 
